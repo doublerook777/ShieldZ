@@ -135,3 +135,34 @@ def test_live_replay_fills_every_sink_with_zero_leaks(tmp_path, monkeypatch):
     assert card.status == "PASS" and card.leaks_exact == card.leaks_variant == 0
     for sink in ("app_log", "audit_chain", "prompt_journal", "outbox_sqlite", "history_sqlite"):
         assert card.bytes_per_sink[sink] > 0, f"{sink} was never written, so it proved nothing"
+
+
+def test_ui_scenarios_match_the_cli_scenarios():
+    """The UI keeps its own copy of the scenario data. It drifted once (balance 490,000 instead of
+    485,000), which turned the scam from a full drain (BLOCK) into a REVIEW on screen."""
+    import importlib.util
+    import re
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).parents[2]
+    spec = importlib.util.spec_from_file_location(
+        "demo_scenarios", root / "scripts/demo_scenarios.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["demo_scenarios"] = module
+    spec.loader.exec_module(module)
+    html = (root / "src/shieldz/service/static/index.html").read_text()
+
+    def ui_value(block: str, key: str) -> str:
+        return re.search(rf"\b{key}:\s*[\"']?([^\"',\n]+)", block).group(1).strip()
+
+    for key, sc in module.SCENARIOS.items():
+        start = html.index(f"{key}: {{", html.index("const SCENARIO_DATA"))
+        block = html[start : html.index("}", start)]
+        assert float(ui_value(block, "amount")) == sc.payment["amount"], key
+        assert (
+            float(ui_value(block, "payer_balance_before")) == sc.payment["payer_balance_before"]
+        ), key
+        assert ui_value(block, "tx_type") == sc.payment["tx_type"], key
+        assert ui_value(block, "payee_account") == sc.payment["payee_account"], key
