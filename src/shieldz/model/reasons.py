@@ -6,7 +6,7 @@ and discrete levels (LOW/MEDIUM/HIGH) are returned (ARCHITECTURE §4).
 
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -78,7 +78,7 @@ def extract_reasons_from_contribs(
     contribs: Sequence[float],
     min_contrib: float = MIN_CONTRIB,
     max_reasons: int = 3,
-) -> List[Tuple[ReasonCode, Level]]:
+) -> list[tuple[ReasonCode, Level]]:
     """Convert raw TreeSHAP feature contributions into top (ReasonCode, Level) pairs.
 
     Args:

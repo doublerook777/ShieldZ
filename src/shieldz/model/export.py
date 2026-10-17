@@ -10,7 +10,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from shieldz.config import model_dir, thresholds_file
 from shieldz.contracts import FEATURE_ORDER
@@ -27,9 +27,9 @@ def get_git_sha() -> str:
 
 def export_model_artifacts(
     engine: XGBoostEngine,
-    output_dir: Optional[Path | str] = None,
-    extra_meta: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Path]:
+    output_dir: Path | str | None = None,
+    extra_meta: dict[str, Any] | None = None,
+) -> dict[str, Path]:
     """Export model.json, model_meta.json, and model.onnx."""
     out_dir = Path(output_dir) if output_dir is not None else model_dir()
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -8,19 +8,18 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     average_precision_score,
-    confusion_matrix,
     precision_recall_curve,
     roc_auc_score,
     roc_curve,
 )
 
-from shieldz.config import ROOT, model_dir, thresholds_file
+from shieldz.config import ROOT, thresholds_file
 from shieldz.contracts import FEATURE_ORDER
 from shieldz.model.engine import XGBoostEngine
 
@@ -37,7 +36,7 @@ def select_thresholds(
     y_score: np.ndarray,
     target_block_precision: float = 0.90,
     target_review_recall: float = 0.90,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Select t_review and t_block from validation probabilities.
 
     t_block: threshold achieving >= target_block_precision (to minimize false blocks).
@@ -70,7 +69,7 @@ def evaluate_model(
     X_test: pd.DataFrame,
     y_test: pd.Series,
     output_dir: Path | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Evaluate engine on test split and write artifacts."""
     results_dir = (ROOT / "results") if output_dir is None else output_dir
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -102,7 +101,9 @@ def evaluate_model(
     thresh_path.write_text(json.dumps(thresh_data, indent=2))
 
     # Confusion matrix at chosen thresholds
-    decisions = np.where(y_prob >= t_block, "BLOCK", np.where(y_prob >= t_review, "REVIEW", "ALLOW"))
+    decisions = np.where(
+        y_prob >= t_block, "BLOCK", np.where(y_prob >= t_review, "REVIEW", "ALLOW")
+    )
     fraud_mask = y_true == 1
 
     cm_metrics = {
@@ -132,6 +133,19 @@ def evaluate_model(
     metrics_file.write_text(json.dumps(metrics, indent=2))
     print(f"Saved metrics to {metrics_file}")
 
+    fraud_tot = int(y_true.sum())
+    legit_tot = len(y_true) - fraud_tot
+    fa, fr, fb = (
+        cm_metrics["fraud_allowed"],
+        cm_metrics["fraud_reviewed"],
+        cm_metrics["fraud_blocked"],
+    )
+    la, lr, lb = (
+        cm_metrics["legit_allowed"],
+        cm_metrics["legit_reviewed"],
+        cm_metrics["legit_blocked"],
+    )
+
     # Generate MODEL_CARD.md
     model_card = f"""# Model Card: ShieldZ Fraud Detection Engine
 
@@ -151,8 +165,8 @@ def evaluate_model(
 ## Confusion Matrix on Holdout
 | Actual / Predicted | ALLOW | REVIEW | BLOCK | Total |
 |---|---|---|---|---|
-| **Fraud (Positive)** | {cm_metrics['fraud_allowed']} | {cm_metrics['fraud_reviewed']} | {cm_metrics['fraud_blocked']} | {int(y_true.sum())} |
-| **Legit (Negative)** | {cm_metrics['legit_allowed']} | {cm_metrics['legit_reviewed']} | {cm_metrics['legit_blocked']} | {len(y_true) - int(y_true.sum())} |
+| **Fraud (Positive)** | {fa} | {fr} | {fb} | {fraud_tot} |
+| **Legit (Negative)** | {la} | {lr} | {lb} | {legit_tot} |
 
 ## Features Used (Decision-Time Only)
 1. `type_TRANSFER`, `type_CASH_OUT`, `type_PAYMENT`, `type_CASH_IN`, `type_DEBIT`
@@ -164,11 +178,14 @@ def evaluate_model(
 7. `payee_balance_before_zero`: mule-account indicator
 8. `hour_of_day`: simulation step % 24
 
-*Notice: Post-transaction balances (`newbalanceOrig`, `newbalanceDest`) and `isFlaggedFraud` are strictly excluded to avoid target leakage.*
+*Notice: Post-transaction balances (`newbalanceOrig`, `newbalanceDest`) and `isFlaggedFraud`
+are strictly excluded to avoid target leakage.*
 
 ## Ethical Considerations & Limitations
 - **Synthetic Data**: Trained on PaySim synthetic mobile money transactions.
-- **Demographics**: PaySim contains no user age, gender, or location demographics. Protection for vulnerable/elderly users is achieved architecturally through non-invasive explanation prompts and deterministic reason codes.
+- **Demographics**: PaySim contains no user demographics. Protection for vulnerable/elderly
+  users is achieved architecturally through non-invasive explanation prompts and deterministic
+  reason codes.
 """
     card_file = results_dir / "MODEL_CARD.md"
     card_file.write_text(model_card)

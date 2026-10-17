@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Tuple
 
 import numpy as np
 
@@ -50,7 +49,7 @@ class XGBoostEngine:
             pred = self.booster.predict(dmat)
             return float(pred[0])
 
-    def reasons(self, features: FeatureVector) -> List[Tuple[ReasonCode, Level]]:
+    def reasons(self, features: FeatureVector) -> list[tuple[ReasonCode, Level]]:
         """Extract top (ReasonCode, Level) pairs using exact TreeSHAP contributions."""
         import xgboost as xgb
 

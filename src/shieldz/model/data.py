@@ -8,13 +8,11 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
 
-from shieldz.contracts import FEATURE_ORDER
-from shieldz.features.engineer import FRAME_INPUT_COLUMNS, engineer_frame
+from shieldz.features.engineer import engineer_frame
 
 # Standard PaySim columns we actually use. Banned post-transaction columns are never read.
 PAYSIM_USE_COLS = [
@@ -110,7 +108,7 @@ def load_raw_df(path: Path | str | None = None, nrows: int | None = None) -> pd.
     return df
 
 
-def prepare_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series, pd.Series]:
+def prepare_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """Engineer features matching `FRAME_INPUT_COLUMNS` and `engineer_frame`.
 
     Returns:
@@ -127,7 +125,7 @@ def prepare_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series, pd.Seri
     prior_inbound = df.groupby("nameDest").cumcount().to_numpy(dtype=np.int64)
 
     # Hour of day derived from simulation step (each step is 1 hour)
-    hour = (df["step"].to_numpy(dtype=np.int64) % 24)
+    hour = df["step"].to_numpy(dtype=np.int64) % 24
 
     frame_inputs = pd.DataFrame(
         {
@@ -150,7 +148,7 @@ def prepare_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series, pd.Seri
 
 def load_paysim(
     path: Path | str | None = None, nrows: int | None = None
-) -> Tuple[pd.DataFrame, pd.Series, pd.Series]:
+) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """Load PaySim dataset, transform to model features, and return (X, y, step)."""
     df = load_raw_df(path=path, nrows=nrows)
     return prepare_features(df)
@@ -161,7 +159,7 @@ def time_based_split(
     y: pd.Series,
     step: pd.Series,
     split_step: int = 600,
-) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
+) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     """Split into train (step <= split_step) and test (step > split_step).
 
     PaySim spans 743 steps (~30 days). Step 600 is ~Day 25, creating an ~80/20

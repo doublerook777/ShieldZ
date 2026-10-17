@@ -8,25 +8,24 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from shieldz.config import model_dir
 from shieldz.contracts import FEATURE_ORDER
-from shieldz.model.data import get_peak_rss_mb, load_paysim, time_based_split
+from shieldz.model.data import get_peak_rss_mb, load_paysim
 from shieldz.model.engine import XGBoostEngine
 
 
 def train_xgboost(
     X_train: pd.DataFrame,
     y_train: pd.Series,
-    X_val: Optional[pd.DataFrame] = None,
-    y_val: Optional[pd.Series] = None,
+    X_val: pd.DataFrame | None = None,
+    y_val: pd.Series | None = None,
     num_boost_round: int = 100,
     early_stopping_rounds: int = 15,
-    custom_params: Optional[Dict[str, Any]] = None,
+    custom_params: dict[str, Any] | None = None,
 ) -> Any:
     """Train XGBoost booster using histogram algorithm and class weighting."""
     import xgboost as xgb
@@ -50,11 +49,15 @@ def train_xgboost(
     if custom_params:
         params.update(custom_params)
 
-    dtrain = xgb.DMatrix(X_train[list(FEATURE_ORDER)], label=y_train, feature_names=list(FEATURE_ORDER))
+    dtrain = xgb.DMatrix(
+        X_train[list(FEATURE_ORDER)], label=y_train, feature_names=list(FEATURE_ORDER)
+    )
 
     evals = [(dtrain, "train")]
     if X_val is not None and y_val is not None:
-        dval = xgb.DMatrix(X_val[list(FEATURE_ORDER)], label=y_val, feature_names=list(FEATURE_ORDER))
+        dval = xgb.DMatrix(
+            X_val[list(FEATURE_ORDER)], label=y_val, feature_names=list(FEATURE_ORDER)
+        )
         evals.append((dval, "val"))
 
     evals_result: dict[str, dict[str, list[float]]] = {}
@@ -71,12 +74,12 @@ def train_xgboost(
 
 
 def run_training_pipeline(
-    data_path: Optional[Path | str] = None,
-    output_dir: Optional[Path | str] = None,
-    nrows: Optional[int] = None,
+    data_path: Path | str | None = None,
+    output_dir: Path | str | None = None,
+    nrows: int | None = None,
     val_split_step: int = 500,
     test_split_step: int = 600,
-) -> Tuple[XGBoostEngine, Dict[str, Any]]:
+) -> tuple[XGBoostEngine, dict[str, Any]]:
     """Complete training pipeline: load data -> time split -> train -> save."""
     out_dir = Path(output_dir) if output_dir is not None else model_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -100,9 +103,11 @@ def run_training_pipeline(
     X_val, y_val = X.iloc[val_mask], y.iloc[val_mask]
     X_test, y_test = X.iloc[test_mask], y.iloc[test_mask]
 
-    print(f"Split sizes: Train={len(X_train):,} (fraud={y_train.sum():,}), "
-          f"Val={len(X_val):,} (fraud={y_val.sum():,}), "
-          f"Test={len(X_test):,} (fraud={y_test.sum():,})")
+    print(
+        f"Split sizes: Train={len(X_train):,} (fraud={y_train.sum():,}), "
+        f"Val={len(X_val):,} (fraud={y_val.sum():,}), "
+        f"Test={len(X_test):,} (fraud={y_test.sum():,})"
+    )
 
     t1 = time.time()
     print("Training XGBoost booster...")

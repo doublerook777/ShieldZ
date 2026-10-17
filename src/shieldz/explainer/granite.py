@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
 
 DEFAULT_MODEL_PATH = Path(
     os.environ.get("SHIELDZ_GRANITE_PATH", "/home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf")
@@ -22,7 +21,7 @@ class GraniteGenerator:
 
     def __init__(
         self,
-        model_path: Optional[Path | str] = None,
+        model_path: Path | str | None = None,
         n_ctx: int = 512,
         n_threads: int = 2,
     ) -> None:
