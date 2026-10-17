@@ -9,14 +9,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 16:30 IST · analysis & critique session (AI agent, Antigravity) |
+| **Last updated** | 2026-10-17 ~16:50 IST · critique merged into docs (AI agent, Claude Code) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M0 — not started (analysis & bug critique complete) |
+| **Current milestone** | M0 — not started (critique reviewed and folded into the docs, ADR D16) |
 | **Active branches** | main |
 | **Blockers** | none |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Address critical findings in `conversation.md` (fix `.gitignore`, start M0 skeleton & spikes, use Ubuntu `python3-cryptography`). |
+| **Next action** | M0 now (we're behind schedule). Member 1: repo skeleton · Member 3: VM facts + spikes (signing: try apt `python3-cryptography` first) · Member 2: PaySim + licence · Member 4: pitch statistics |
 
 ---
 
@@ -122,6 +122,25 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 ~17:00 IST · AI agent (Claude Code) · planning · role change
+- Did: Moved `model/` (loader, training, evaluation, engine, reasons, export, thresholds) from the main build to **Member 3**, as the team agreed. Added an `Engine` protocol to the M1 contracts as the hand-off point, and a stub engine so M3 doesn't wait for M2.
+- Next step: M0.
+
+### 2026-10-17 ~16:50 IST · AI agent (Claude Code) · planning · critique response
+- Did: Reviewed `conversation.md` point by point and recorded the verdicts in ADR D16. Valid points are now in the plan:
+  - guard re-renders the template and compares byte for byte;
+  - output guard targets PII shapes, with a ≥ 80% Granite-source gate;
+  - scanner uses a standalone 7+ digit rule plus a negative control with decoys;
+  - signing happens in background checkpoints;
+  - history store is seeded and bucketed, with a clean-start ALLOW test;
+  - PR-AUC floor and 45-min tuning timebox; `MIN_CONTRIB` threshold;
+  - apt `python3-cryptography` is the first signing option;
+  - core split is computed from `nproc`;
+  - `df -h` gate; uv install note.
+  Also lightened handoffs: notes-only commits go straight to `main`, and `explanation.md` is only needed at role/baton handoffs. Added `*.sqlite` and an audit-pubkey exception to `.gitignore`.
+- Rejected or downgraded: the TreeSHAP 10–25 ms cost (overstated, and already gated); SQLite across containers (fine on one host; gated anyway).
+- Next step: M0.
 
 ### 2026-10-17 16:30 IST · AI agent (Antigravity) · review & critique · M0
 - Did: Conducted full architectural, security, ML, and LinuxONE feasibility audit across all project documentation and local environment. Created `conversation.md` detailing 7 critical vulnerabilities/bugs (non-numeric PII leak risk in "no digits" guard, Birthday Paradox false positives in 6-digit partial canary scanner, latency bottlenecks in TreeSHAP/audit log file locking, SQLite WAL concurrency over Docker bind mounts, empty history store cold-start bug, PaySim non-leaky PR-AUC feasibility, and overlooked Ubuntu `apt` native `python3-cryptography` package).

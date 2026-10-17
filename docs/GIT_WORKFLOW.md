@@ -108,8 +108,8 @@ Before you hand off, whether you're a human or an agent running out of context:
 
 1. Commit everything on your branch, even half-done work: `wip(<area>): <state>`.
 2. Push the branch.
-3. Update `progress.md` (status snapshot plus a log entry) and add your section to `explanation.md`.
-4. Commit those on a `docs/` branch and merge to `main` right away, **or** include them in your feature PR if it's merging now. `progress.md` on `main` must always be current.
+3. Update `progress.md` (status snapshot plus a short log entry). Add an `explanation.md` section only if you're handing over a role or the baton.
+4. Commit `progress.md` / `explanation.md`-only changes **directly to `main`** (`git pull --rebase && git commit && git push`). This is the one exception to the PR rule, because they're notes, not code. `progress.md` on `main` must always be current.
 
 If two people edit `progress.md` at once, the conflict is easy to fix: keep both log entries, newest first.
 

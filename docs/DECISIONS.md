@@ -13,7 +13,7 @@ Evidence gathered on 2026-10-17 from PyPI and the `linuxone-community-cloud/jupy
 |---|---|---|
 | onnxruntime 1.31 | **no s390x wheel, no sdist** | Can't serve ONNX on Z without a large source build |
 | shap 0.54 | no s390x wheel (sdist only, C++ build) | Use XGBoost's built-in TreeSHAP instead |
-| cryptography 50.x | no s390x wheel (sdist needs Rust) | Ed25519 needs a spike or our own implementation |
+| cryptography 50.x | no s390x wheel on PyPI (sdist needs Rust); **Ubuntu ships `python3-cryptography` for s390x via apt** | Try apt first (ADR D6) |
 | pynacl | no s390x wheel | Same as above |
 | snapml 1.17.2 | **cp312 s390x wheel exists** | Candidate Z-optimised tree inference |
 | pydantic-core 2.50 | cp312 s390x wheel | FastAPI works |
@@ -45,11 +45,16 @@ We reuse the Granite model file and the llama.cpp build (with zDNN/NNPA and Open
 ## D5 — Queue: SQLite outbox · *Accepted*
 The decision path inserts a row into `explain_jobs` (SQLite, WAL mode). The explainer polls it.
 **Why:** standard library only, durable, inspectable, easy to scan for leaks, works across two containers that share a bind mount on one host.
+Both containers share one host kernel and a local filesystem, so SQLite's locks and WAL shared memory work across them (the known problems are with network filesystems). We set `busy_timeout=5000`. Both containers use the same image, so the same UID owns the files. Verified by the M5 cross-container gate.
 **Rejected:** Redis/Kafka/RabbitMQ (extra services and s390x images to verify); an in-process asyncio queue (the LLM would compete for the API's CPU).
 
 ## D6 — Signing backend for the audit chain · *Pending M0*
-- If `pip install cryptography` builds in the image within 30 min: use its Ed25519 and **sign every entry**.
-- Otherwise: write our own Ed25519 from **RFC 8032** (pure Python, the hashing comes from `hashlib`). It must pass all RFC 8032 §7.1 test vectors. Because it's slower, **sign checkpoints** (chain head) every 100 entries or 1 s.
+- Try these in order and stop at the first that works (30-min timebox in total):
+  1. Ubuntu's prebuilt `python3-cryptography` via `apt`. The VM host is Ubuntu 24.04 with Python 3.12, so it works there directly. Inside our image it works if the L1CC base is Debian/Ubuntu: expose it to `/opt/venv` with a `.pth` file.
+  2. `pip install cryptography`, building from source with Rust.
+  3. Our own Ed25519 from **RFC 8032** (pure Python). It must pass all RFC 8032 §7.1 test vectors.
+- Whatever the backend, **signing runs in a background thread, never in the request path.** It signs a checkpoint (the chain head hash) every 100 entries or every second.
+- Possible IBM Z bonus, *only if verified on our VM*: OpenSSL on z15 and later can use the CPACF `KDSA` instruction for Ed25519. Don't claim this in the pitch unless we confirm it.
 - Post-quantum ML-DSA (Dilithium) via liboqs: a 90-min stretch only after the M3–M5 gates pass.
 
 ## D7 — Container base image: the L1CC Jupyter image · *Accepted*
@@ -94,6 +99,28 @@ The original idea said Podman. For judging, both count as "containerization".
 ## D15 — Team model: hybrid relay with 4 members · *Accepted*
 The critical path is one "main build" passed between members (the baton). Proof build, LinuxONE operations and pitch/review run in parallel in separate folders (plan §3).
 **Rejected:** a pure relay (only one person productive, 2–3 h lost to handoffs); four parallel lanes (merge conflicts and too much dependency early on).
+
+## D16 — Response to the 16:30 review (`conversation.md`) · *Accepted*
+Each critique point, what we changed, or why we didn't:
+
+| # | Point | Verdict | Change |
+|---|---|---|---|
+| 2.1 | "No digits" doesn't stop names | **Valid** | Guard now re-renders the template and compares byte for byte (I2). Name-injection test added (M5) |
+| 2.1 | Output guard rejects all digits, so Granite would always fall back | **Valid** | Output guard targets PII shapes; `source` field; ≥ 80% Granite gate (M5) |
+| 2.2 | 6-digit partial rule causes false positives | **Valid** | Standalone 7+ digit rule + negative control with never-sent decoys (M4) |
+| 2.3 | TreeSHAP costs 10–25 ms | Overstated: TreeSHAP for one row on a few hundred shallow trees is typically about a millisecond | Already gated (M2 engine p99 ≤ 5 ms incl. contribs); fallback to worker-side codes added |
+| 2.3 | File lock + signing in request path | **Valid for signing** | Signing moved to a background checkpoint thread for every backend (D6). Append stays: microseconds |
+| 2.4 | SQLite across containers on bind mounts | Mostly not an issue on one host/local filesystem | `busy_timeout`, same UID, cross-container gate (M5) |
+| 2.5 | Cold-start history marks every payee new | **Valid** | Seeded + bucketed history; clean-start ALLOW test (M1, M3) |
+| 3.1 | PR-AUC 0.80 may be unreachable without leaky columns | **Valid** | 45-min tuning timebox; floor = PR-AUC ≥ 0.50 and beat a rule baseline |
+| 3.2 | Tiny SHAP contributions still produce scary codes | **Valid** | `MIN_CONTRIB` threshold, else `OTHER_PATTERN` |
+| 4.1 | Use Ubuntu's `python3-cryptography` | **Valid** | apt is now the first option (D6, M0 task 4) |
+| 4.2 | Hardcoded `--cpuset-cpus 2-3` fails on 2 vCPUs | **Valid** | `make z-up` computes the split from `nproc` |
+| 4.3 | RAM/disk pressure | Already covered (M0 facts, dtypes) | Added a `df -h` ≥ 10 GB check to the M0 gate |
+| 5.1 | `.gitignore` incomplete | **Valid** | Fixed in `c099122`; `*.sqlite` and the audit public-key exception added after |
+| 5.2 | Some laptops lack uv / Python 3.12 / Docker | **Valid** | AGENTS.md: install uv (it fetches Python 3.12 itself); Docker isn't needed on laptops |
+| 6.1 | Handoff ceremony costs hours | **Partly** | progress/explanation-only commits may go straight to `main`; `explanation.md` only at role/baton handoffs |
+| 6.2 | Baton bottleneck; "parallelise immediately" | The parallel split it proposes is already the plan (§3). The real load issue is M2 + M3 both sitting on the main build | **Done:** `model/` moved to Member 3 (LinuxONE operator), with an `Engine` protocol in contracts and a stub engine for M3 |
 
 ## Adding a dependency (process)
 1. `python scripts/check_deps.py <package>` (or check PyPI for an `s390x` wheel / `none-any` wheel).

@@ -136,8 +136,9 @@ Plain-language explanations of every technical term used in the ShieldZ docs. Gr
 | **Sink** | Any place data ends up: log, database, file, prompt, response. | The Leak Audit scans every registered sink plus a catch-all. |
 | **Variant (of a canary)** | A transformed version of a value: lower-case, digits-only, base64, hex, URL-encoded, hashed. | Leaks are often disguised; we check all the common disguises. |
 | **Base64 / hex / URL-encoding** | Ways to write data as text characters. | A leaked value might be stored in one of these forms. |
-| **Partial leak** | Part of a value, e.g. 6+ consecutive digits of a phone number. | Counted separately; must also be 0. |
+| **Partial leak** | Part of a value, e.g. 7+ digits of a phone number standing on their own (not inside a longer number). | Counted separately; must also be 0. |
 | **Positive control** | Deliberately planting known leaks to prove the scanner catches them. | Without it, "0 leaks" might just mean the scanner is broken. |
+| **Negative control / decoy canaries** | Fake records that are generated but **never sent** through the system. Finding one means the scanner raises false alarms. | Proves the scanner is *specific* (no false alarms), just as the positive control proves it is *sensitive* (finds real leaks). |
 | **False negative (of the scanner)** | A real leak the scanner fails to detect. | What the positive control guards against. |
 | **Scorecard** | The Leak Audit's output: records, sinks, bytes scanned, leaks found, control result, platform. | `results/leak_scorecard_*.json/.md`, shown in the video. |
 | **Tokenization (privacy sense)** | Replacing a sensitive value with a stand-in token. | Account IDs become HMAC tokens. |

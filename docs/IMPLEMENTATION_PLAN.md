@@ -74,9 +74,9 @@ This avoids the idle time of a pure relay and the merge conflicts of four people
 
 | Role | Default holder | Owns | Edits only these files/folders | Milestones |
 |---|---|---|---|---|
-| **Main build** (the baton) | Member 1 | Critical path: skeleton → contracts → features → model code → decision service → integration | `contracts.py`, `config.py`, `privacy/`, `features/`, `model/`, `service/app.py`, `service/decide.py`, `outbox/`, `containers/`, `Makefile`, `pyproject.toml`, `requirements/` (+ their tests) | M0 skeleton, M1, M2 code, M3, M7 integration |
+| **Main build** (the baton) | Member 1 | Critical path: skeleton → contracts → features → decision service → integration | `contracts.py`, `config.py`, `privacy/`, `features/`, `service/app.py`, `service/decide.py`, `outbox/`, `containers/`, `Makefile`, `pyproject.toml`, `requirements/` (+ their tests) | M0 skeleton, M1 (except task 6), M3, M7 integration |
 | **Proof build** | Member 2 | The parts that *prove* the privacy claim | `leak_audit/`, `audit/`, `explainer/prompt.py`, `explainer/guard.py`, `explainer/template.py`, `explainer/journal.py` (+ their tests) | M4, M6, M5 (prompt, guard, template) |
-| **LinuxONE operator** | Member 3 | Everything that runs on the VM, so the builders never wait on it | `scripts/`, `notebooks/`, `explainer/granite.py`, `explainer/worker.py`, `results/` | M0 spikes, M2 full training on Z, every Z gate, M5 (Granite + worker), benchmarks, evidence |
+| **LinuxONE operator** | Member 3 | The model, plus everything that runs on the VM, so the builders never wait on it | `model/` (loader, training, evaluation, engine, reasons, export), `scripts/`, `notebooks/`, `explainer/granite.py`, `explainer/worker.py`, `results/` | M0 spikes, M1 task 6, **M2 (all of it)**, every Z gate, M5 (Granite + worker), benchmarks, evidence |
 | **Pitch & review** | Member 4 | The story, and a second pair of eyes | `README.md`, `docs/assets/`, `service/static/`, `scripts/demo_scenarios.py` | Pitch research from 16:00, PR reviews, M7 demo UI, M8 lead, night relief for the main build |
 
 Rules:
@@ -149,7 +149,12 @@ Tasks
 1. **VM facts** (on the VM; record each answer in `progress.md` → "LinuxONE facts"): (OS = Ubuntu 24.04-Datathon and Docker 29.8.0 are already confirmed) `nproc`, `free -h`, `df -h ~`, `uname -m`, whether `/proc/cpuinfo` lists `nnpa`, Python version inside the Jupyter container (`/opt/venv/bin/python --version`).
 2. **Base image check:** build a throwaway image `FROM registry.linuxone.cloud.marist.edu/l1cc/jupyterlab-image-s390x:latest` that runs `pip install fastapi uvicorn faker pytest`. It must succeed. fastapi, uvicorn, faker and pytest are pure Python, and pydantic-core has a cp312 s390x wheel.
 3. **Granite location:** inside the Jupyter container, find the Lab 2 model: `find / -name "*.gguf" 2>/dev/null`, then read how `loan_demo/rag_utils.py:load_model` opens it (context size, threads). **Read only; do not copy code (event rules).** Load it with `llama_cpp.Llama`, generate 60 tokens and record the model name, quantization and tokens/second.
-4. **Signing library spike (timebox 30 min):** inside the throwaway image, `pip install cryptography`. It has no s390x wheel, so it will try to build from source and needs Rust. Record pass or fail. If it fails, ADR D6 switches to our own RFC 8032 Ed25519 (see [DECISIONS.md](DECISIONS.md)).
+4. **Signing library spike (timebox 30 min, ADR D6).** Try these in order and stop at the first that works:
+   - (a) `docker exec notebook cat /etc/os-release`. If the image is Debian/Ubuntu-based, run `apt-get install -y python3-cryptography` in the throwaway image and make it visible to `/opt/venv` with a `.pth` file pointing at `/usr/lib/python3/dist-packages` (same Python 3.12 ABI).
+   - (b) `pip install cryptography`, building from source with `rustc cargo libssl-dev`.
+   - (c) Our own RFC 8032 Ed25519.
+
+   Record which one worked.
 5. **Snap ML spike (timebox 20 min):** `pip install snapml` (cp312 s390x wheel exists). Record whether it imports.
 6. **Data:** download PaySim from Kaggle on a laptop (`ealaxi/paysim1`), check its licence and record it in README credits, then `scp` the zip to `~/shared/ShieldZ/data/` on the VM. Also make a 200k-row stratified sample for local work, kept in `data/` and gitignored.
 7. **Repo skeleton** (Main build): the directory tree from [ARCHITECTURE.md §7](ARCHITECTURE.md#7-file-structure), `pyproject.toml`, `requirements/*.txt`, `Makefile`, `.gitignore` entries (`data/`, `artifacts/`, `*.gguf`, `.venv/`, keys), `pytest.ini` with markers `z`, `llm`, `slow`, one smoke test, `scripts/z_doctor.py`, `scripts/check_deps.py`.
@@ -163,6 +168,7 @@ Tasks
 - [ ] Results of the cryptography and Snap ML spikes recorded; ADRs D2 and D6 marked *Accepted* with the outcome.
 - [ ] PaySim is on the VM, and its licence is recorded in the README.
 - [ ] "LinuxONE facts" section of `progress.md` filled in.
+- [ ] `df -h ~` shows ≥ 10 GB free before any image build (prune first if not).
 
 ---
 
@@ -171,12 +177,14 @@ Tasks
 **Goal:** freeze the shared data shapes so that the parallel roles can work independently, and build the one feature function that both training and serving use.
 
 Tasks
-1. `src/shieldz/contracts.py`: Pydantic models `PaymentRequest` (includes PII: payer name, phone, account, payee account and name, amount, balances, free-text `memo`), `FeatureVector` (no PII by construction), `Decision`, `ReasonCode` enum (closed set, see [ARCHITECTURE.md §4](ARCHITECTURE.md#4-reason-codes)), `Level` enum (`LOW/MEDIUM/HIGH`), `ExplainJob`, `AuditEntry`.
+1. `src/shieldz/contracts.py`: an `Engine` protocol (`score(FeatureVector) -> float`, `reasons(FeatureVector) -> list[(ReasonCode, Level)]`) that is the hand-off point between the model (Member 3) and the service (Member 1). Plus Pydantic models `PaymentRequest` (includes PII: payer name, phone, account, payee account and name, amount, balances, free-text `memo`), `FeatureVector` (no PII by construction), `Decision`, `ReasonCode` enum (closed set, see [ARCHITECTURE.md §4](ARCHITECTURE.md#4-reason-codes)), `Level` enum (`LOW/MEDIUM/HIGH`), `ExplainJob`, `AuditEntry`.
 2. `privacy/tokenize.py`: HMAC-SHA256 tokenization of account identifiers with a secret pepper loaded from `artifacts/keys/pepper` (generated on first run, never committed).
 3. `privacy/strip.py`: `strip(PaymentRequest) -> (FeatureInput, tokens)`. This is the **only** function that touches PII. Names, phone and memo are dropped here.
 4. `features/engineer.py`: `engineer(FeatureInput, history) -> FeatureVector`. It is used by training (batch over a DataFrame) and by serving (one row), from the same code path.
 5. `features/history.py`: recipient-novelty store keyed by HMAC tokens (in memory, with an optional SQLite snapshot).
-6. `model/data.py`: PaySim loader with dtypes (keeps memory low), **time-based split** on `step` (train on the earlier steps, test on later ones), drop `isFlaggedFraud`.
+   - **Seeded at startup** from PaySim's inbound counts and from `src/shieldz/features/demo_seed.csv` (fake demo payees with a normal history), so a cold start doesn't flag every payee as new.
+   - The count is bucketed (0 / 1–3 / 4+), so training and serving see the same scale.
+6. *(LinuxONE operator)* `model/data.py`: PaySim loader with dtypes (keeps memory low), **time-based split** on `step` (train on the earlier steps, test on later ones), drop `isFlaggedFraud`.
 7. Use **decision-time features only** (the table in [ARCHITECTURE.md §3](ARCHITECTURE.md#3-request-lifecycle-decision-path)). PaySim's post-transaction balances are unknown before a real payment executes, so training on them would be **data leakage**.
 
 **Gate M1** (tag `m1-gate`)
@@ -184,26 +192,30 @@ Tasks
 - [ ] **PII barrier test:** `strip()` output, serialized, contains none of the input's name, phone, account, memo or exact amount strings.
 - [ ] Feature unit tests on hand-made rows (account drain, mule-account pattern, new recipient).
 - [ ] Test that the feature list contains **no post-transaction column** (`newbalanceOrig`, `newbalanceDest` or anything derived from them).
+- [ ] Cold-start test: a fresh history store with the seed loaded puts the demo bill-payment payee in the `4+` bucket.
 - [ ] **Parity test:** `tests/golden/features_v1.csv` (200 rows → expected features) gives identical results locally and on the VM (`make z-gate`).
 - [ ] Loader on the VM reads the full PaySim within memory limits (peak RSS recorded).
 - [ ] Contracts reviewed by Members 2, 3 and 4, then marked **frozen** in `progress.md`. After this, changing them needs a PR that every member acknowledges.
 
 ---
 
-### M2 — Model, thresholds and reason codes (18:30 → 22:00) · Main build + LinuxONE operator
+### M2 — Model, thresholds and reason codes (18:30 → 22:00) · LinuxONE operator
 
 **Goal:** a trained, evaluated model on Z, with fast per-transaction explanations.
 
 Tasks
 1. `model/train.py`: XGBoost `hist` booster with `scale_pos_weight` for the class imbalance and early stopping on a validation split. Train on a sample locally; **train on full PaySim on LinuxONE** via `notebooks/02_train_on_linuxone.ipynb` (evidence).
 2. `model/evaluate.py`: PR-AUC, ROC-AUC, recall at a fixed false-positive rate, and a confusion matrix at the chosen thresholds. Write `results/model_metrics.json` and a short `results/MODEL_CARD.md` that states the synthetic data, the missing demographics and the PaySim limitations.
-3. `service/decide.py` thresholds: choose `t_review` and `t_block` on the validation set (e.g. block when precision ≥ 0.95, review when recall ≥ 0.95). Store them in `artifacts/model/thresholds.json`.
+3. Thresholds: choose `t_review` and `t_block` on the validation set (e.g. block when precision ≥ 0.95, review when recall ≥ 0.95). Store them in `artifacts/model/thresholds.json`. The main build's `service/decide.py` only reads this file.
 4. `model/reasons.py`: XGBoost `pred_contribs=True` (exact TreeSHAP, built into XGBoost) → top-3 features with **positive** contribution → `(ReasonCode, Level)` through a fixed mapping table. Raw values are discarded.
+   - A feature becomes a code only if its contribution is ≥ `MIN_CONTRIB` (start at +0.1 log-odds and tune). If no feature qualifies, use `OTHER_PATTERN`.
+   - Contributions are computed only for REVIEW/BLOCK.
+   - Fallback if the 5 ms engine budget is missed: compute codes in the explainer worker from the numeric `FeatureVector` (no PII), and leave the request path with the decision only.
 5. `model/engine.py`: an inference backend interface with `XGBoostEngine` (default; `inplace_predict`, `nthread=1` for single rows). Add `SnapMLEngine` only if M0 showed that Snap ML works.
 6. `model/export.py`: save `model.json` (XGBoost JSON), `model.onnx` (via onnxmltools, checked with `onnx.checker`) and `model_meta.json` (feature order, thresholds, version, training data hash, git SHA). ONNX is the portable export; we do not serve it on Z (no onnxruntime for s390x; ADR D2).
 
 **Gate M2** (tag `m2-gate`)
-- [ ] Time-based holdout on the VM: **PR-AUC ≥ 0.80** and **recall ≥ 0.80 at FPR ≤ 1%**. If not met, write down why and get the team to agree before moving on.
+- [ ] Time-based holdout on the VM: target **PR-AUC ≥ 0.80** and **recall ≥ 0.80 at FPR ≤ 1%**. Tuning is timeboxed to **45 min**. If the target isn't met, the **floor** is PR-AUC ≥ 0.50 **and** beating a simple rule baseline (`TRANSFER/CASH_OUT` with `amount_to_balance ≥ 0.99`) on PR-AUC. Record the numbers and the exemption in `progress.md`.
 - [ ] **Prediction parity:** `tests/golden/predictions_v1.csv` (500 rows) matches local vs Z within 1e-6, and the reason codes are identical.
 - [ ] Reason codes are deterministic (same input → same codes, 100 repeats).
 - [ ] Every reason code is one of the `ReasonCode` enum values (property test over 10k rows).
@@ -218,9 +230,10 @@ Tasks
 **Goal:** an HTTP service on LinuxONE that decides within 50 ms p99 and never writes PII.
 
 Tasks
+0. Until M2 lands, the service uses a **stub engine**: a simple rule (`TRANSFER/CASH_OUT` and `amount_to_balance ≥ 0.99`) behind the M1 `Engine` protocol. Swapping in the real `XGBoostEngine` is a one-line config change.
 1. `service/app.py` (FastAPI): `POST /v1/score` → `Decision {decision_id, decision, risk_level, reason_codes, model_version, server_ms}`. The response contains no PII and no exact score. `GET /healthz` returns `platform` (from `uname -m`), the model version and the engine. Make the endpoint a plain `def` so FastAPI runs it in its thread pool and CPU-bound inference doesn't block the event loop.
 2. Pipeline per request: validate → `strip()` → `engineer()` → engine predict → `decide()` → reasons (for REVIEW/BLOCK) → **audit append** (M6 stub until then) → **outbox enqueue** → respond.
-3. `outbox/queue.py`: SQLite in WAL mode, table `explain_jobs(id, decision_id, decision, reason_codes, levels, language, status, created_at)`. The insert costs well under a millisecond.
+3. `outbox/queue.py`: SQLite in WAL mode with `busy_timeout=5000`, table `explain_jobs(id, decision_id, decision, reason_codes, levels, language, status, created_at)`. The insert costs well under a millisecond. Both containers run the same image, so the same UID owns the files.
 4. `privacy/redact_log.py`: JSON logging with a **field allowlist**: only known safe keys are logged and everything else is dropped. Uvicorn access logs are switched off (they would log paths and clients).
 5. `containers/Containerfile`: `FROM` the L1CC jupyterlab image, `pip install -r requirements/z-extra.txt`, copy `src/`, with a default CMD that runs the API. One image provides two commands: `api` and `explainer`.
 6. `scripts/bench_latency.py`: asyncio + httpx client **on the VM itself** (localhost). 500 warm-up requests, then 5,000 measured at concurrency 1 and 8. It records client p50/p95/p99 and server-side `server_ms` p50/p95/p99 in `results/latency_<tag>.json`.
@@ -232,6 +245,7 @@ Tasks
 - [ ] Container builds and runs on the VM; `/healthz` reports `s390x`.
 - [ ] **Latency on the VM: p99 < 50 ms** (client-measured, localhost) at concurrency 1 and 8. Store the results file and paste the numbers into `progress.md`.
 - [ ] Each request writes one outbox row (count check after the benchmark).
+- [ ] From a clean start (empty runtime dir, seed loaded): demo scenario (b), a normal bill payment, gives **ALLOW**.
 
 ---
 
@@ -242,16 +256,17 @@ Tasks
 Tasks
 1. `leak_audit/canaries.py`: seeded Faker generates **1,000** records with Indian-locale names, +91 phone numbers, account numbers, UPI IDs, emails, a memo with a unique marker (`CANARY-<hex>`) and a **distinctive amount** (unusual paise values such as `48250.37`).
 2. `leak_audit/sinks.py`: **registry of every place data lands.** It includes the app log file, container stdout/stderr (`docker logs`), the audit chain file, the SQLite outbox (all text columns), the prompt journal, LLM outputs (explanations table), HTTP responses captured by the replay client, the history store, and a **catch-all walk of the whole runtime directory** (`artifacts/runtime/**`). Any file nobody registered still gets scanned.
-3. `leak_audit/scanner.py`: for every canary value it searches for the exact value plus **variants**: case-folded, whitespace/separator-stripped, digits-only, base64, hex, URL-encoded, and unsalted MD5/SHA-1/SHA-256 hex digests. Any **6 or more consecutive digits** of a phone or account number counts as a `PARTIAL` leak. HMAC tokens are allowed because they need the secret pepper to reverse.
+3. `leak_audit/scanner.py`: for every canary value it searches for the exact value plus **variants**: case-folded, whitespace/separator-stripped, digits-only, base64, hex, URL-encoded, and unsalted MD5/SHA-1/SHA-256 hex digests. A `PARTIAL` leak is a **standalone** run of 7 or more digits that appears inside a canary phone or account number. Standalone means bounded by non-digits, after joining digit groups split by spaces or dashes. Digits inside longer runs (timestamps, hashes, IDs) don't count, because that's where random collisions happen. HMAC tokens are allowed because they need the secret pepper to reverse.
 4. `leak_audit/replay.py`: drives the canaries through the full pipeline, either in-process with TestClient (local, template explainer) or over HTTP against the running containers (VM, real Granite). It waits for the explainer queue to drain before scanning.
 5. **Positive control:** `--plant-leak` writes 10 canaries into a decoy sink. The run is valid only if the scanner finds **exactly those 10**. Without this, "0 leaks" could just mean the scanner is broken.
+   **Negative control:** generate 1,000 *decoy* canaries the same way but **never send them**, and search for them too. Any decoy hit is a false positive, meaning the matching rules are too loose. A valid run has 0 decoy hits.
 6. `leak_audit/scorecard.py`: `results/leak_scorecard_<env>.json` and `.md` with records replayed, sinks scanned, bytes scanned, leaks and partials per sink, the positive-control result, git SHA, `uname -m` and timestamp. The scorecard is signed by the audit key once M6 lands.
 
 Before M3 lands, the proof build develops and tests the scanner against a **stub service** (a few lines that call `strip()` and write to a log), so M4 isn't blocked.
 
 **Gate M4** (tag `m4-gate`)
 - [ ] Scanner unit tests: each variant type is detected when planted in a temp file; HMAC tokens are not flagged.
-- [ ] Positive control: 10/10 planted canaries detected, 0 false hits on a clean run of 1,000.
+- [ ] Positive control: 10/10 planted canaries detected. Negative control: 0 hits for the 1,000 never-sent decoys.
 - [ ] `make leak-audit` locally (template explainer): **0 leaks, 0 partials**, under 5 min.
 - [ ] **On the VM against the running containers: 0 leaks, 0 partials**, scorecard in `results/`.
 - [ ] Every sink type in [ARCHITECTURE.md §5](ARCHITECTURE.md#5-where-data-lands-sinks) appears in the scorecard with bytes scanned > 0.
@@ -265,7 +280,12 @@ Before M3 lands, the proof build develops and tests the scanner against a **stub
 
 Tasks
 1. `explainer/prompt.py`: builds prompts **only** from a fixed template plus `ReasonCode`/`Level`/`Decision`/`language` enum values and their fixed descriptions. No free text from the request can reach it.
-2. `explainer/guard.py`: the **allowlist firewall** that runs before every LLM call. The prompt must match the template structure, contain only known codes, and contain **no digits** (account numbers, phones and amounts all contain digits). If any check fails, the call is refused and the worker uses the template. The output check falls back to the template if the LLM output contains digits, URLs or `@`. Invented numbers or links would look like a scam to the user.
+2. `explainer/guard.py`: the **allowlist firewall** that runs before every LLM call.
+   - It parses the job's enum values, **re-renders the template itself and requires the prompt to match byte for byte**. So no name, memo or other free text can slip in, with or without digits.
+   - On top of that, the variable parts must contain **no digits**.
+   - If any check fails, the call is refused and the worker uses the template.
+   - The **output guard** rejects PII-shaped content: any run of 4+ digits, money amounts (₹/Rs/INR next to a number), phone-like patterns, URLs and `@`. Small numbers like "24 hours" or "3 steps" are allowed.
+   - Every explanation records its `source` (`granite` or `template`), and the UI shows it.
 3. `explainer/journal.py`: records every prompt and output (a registered Leak Audit sink).
 4. `explainer/template.py`: `TemplateExplainer` (deterministic, human-written sentences per code; used locally and as the fallback; proof build). `explainer/granite.py`: `GraniteExplainer` (llama_cpp with the Lab 2 GGUF; thread count capped so it doesn't starve the API; LinuxONE operator).
 5. `explainer/worker.py`: polls the SQLite outbox, explains, stores the result, marks the job done. It runs in its **own container**, CPU-pinned away from the API (`--cpuset-cpus`; see the runbook).
@@ -273,8 +293,10 @@ Tasks
 7. `GET /v1/explanations/{decision_id}` for the demo UI to poll.
 
 **Gate M5** (tag `m5-gate`)
-- [ ] Guard tests: prompts with an injected digit, an unknown code, extra text or an over-long length are **all rejected**; 1,000 fuzzed prompts → 0 accepted that break the rules.
+- [ ] Guard tests: prompts with an injected digit, an injected name (letters only), an unknown code, extra text or an over-long length are **all rejected**; 1,000 fuzzed prompts → 0 accepted that break the rules.
 - [ ] On the VM: an explanation appears for a BLOCK decision within the measured time (record p50 seconds).
+- [ ] **Granite really writes the text:** on 50 sample BLOCK/REVIEW jobs on the VM, ≥ 80% of explanations have `source = granite`, not the template fallback. Record the rate.
+- [ ] Cross-container outbox: 5,000 jobs written by `shieldz-api` and consumed by `shieldz-explainer` with 0 `database is locked` errors.
 - [ ] **Latency isolation:** re-run the M3 benchmark **while the explainer is busy**; decision p99 is still **< 50 ms**.
 - [ ] **Leak Audit re-run on the VM with real Granite: 0 leaks, 0 partials.**
 - [ ] Three sample explanations (one per main scenario) saved in `results/sample_explanations.md` for the video.
@@ -286,8 +308,8 @@ Tasks
 **Goal:** every decision is written to a log that cannot be quietly altered, and we can show that.
 
 Tasks
-1. `audit/chain.py`: append-only JSONL. Each entry `{seq, ts, decision_id, decision, risk_level, reason_codes, model_version, prev_hash}` gets `hash = SHA-256(canonical JSON)` (sorted keys, no spaces). A single writer with a file lock.
-2. `audit/signing.py`: Ed25519 key pair in `artifacts/keys/` (private key never committed; public key exported to `results/audit_pubkey.pem`). Backend chosen in M0 (ADR D6). With the `cryptography` library, sign every entry. With our own RFC 8032 code (slower), sign a **checkpoint** (chain head hash) every 100 entries or every second, whichever comes first.
+1. `audit/chain.py`: append-only JSONL. Each entry `{seq, ts, decision_id, decision, risk_level, reason_codes, model_version, prev_hash}` gets `hash = SHA-256(canonical JSON)` (sorted keys, no spaces). The API runs one process, so an in-process lock serialises appends. The append (hash + write) takes microseconds and is the only audit work in the request path.
+2. `audit/signing.py`: Ed25519 key pair in `artifacts/keys/` (private key never committed; public key exported to `results/audit_pubkey.pem`). Backend chosen in M0 (ADR D6). **Signing never runs in the request path.** A background thread signs a **checkpoint** (the chain head hash) every 100 entries or every second, whichever comes first. Because of the chain, one checkpoint signature covers every entry before it.
 3. `audit/verify.py` CLI: recomputes the chain, checks every signature/checkpoint and reports the first broken `seq`.
 4. **Stretch (90 min timebox, only if M3 to M5 gates have passed):** post-quantum ML-DSA (Dilithium) via liboqs on s390x. Drop it without regret if the build fails.
 
@@ -356,7 +378,6 @@ Cut from the top first:
 3. Snap ML engine comparison.
 4. UI polish (keep a plain functional page).
 5. ONNX export.
-6. Per-entry signing → checkpoint signing only.
 
 **Never cut:** the Leak Audit with its positive control, the latency benchmark on LinuxONE, the live demo, the video evidence.
 
@@ -370,6 +391,10 @@ Cut from the top first:
 | VM memory too small for full PaySim | Load with explicit dtypes and `usecols`; if needed, train on all fraud rows plus a non-fraud sample and document it |
 | Granite slow on CPU | It's asynchronous by design; cap its threads; template fallback keeps the UX working |
 | CPU contention hurts p99 | Separate containers pinned to separate cores; benchmark while the explainer is busy (M5 gate) |
+| Leak scanner false positives (random digit collisions) | Standalone-digit partial rule + negative control with never-sent decoys (M4) |
+| Granite output always falling back to the template | Output guard targets PII shapes, not all digits; `source` recorded; ≥ 80% Granite gate (M5) |
+| Cold-start history flags every payee as new | Seeded, bucketed history store; clean-start ALLOW test (M3) |
+| Fewer than 4 vCPUs | `make z-up` computes the core split from `nproc` (runbook §5) |
 | PaySim is "too easy" (post-transaction balance artifacts) | Decision-time features only; time-based split; model card states the limitation; we claim architecture, not real-world accuracy |
 | Metric gate not met without the leaky columns | The gate allows a documented, team-agreed exception; honesty about the metric scores better than a leaky one |
 | VM has no backups | Code lives in git; `results/` copied back to laptops after every gate; model can be retrained |

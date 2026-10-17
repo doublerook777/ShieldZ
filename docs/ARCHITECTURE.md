@@ -46,7 +46,7 @@ flowchart TD
 
         subgraph ASYNC["shieldz-explainer container (async)"]
             W["worker polls outbox"] --> PB["prompt.build()<br/>template + enum values only"]
-            PB --> G{"guard<br/>allowlist + no digits"}
+            PB --> G{"guard<br/>exact re-render + no digits"}
             G -->|"pass"| LLM["Granite (llama.cpp, GGUF)"]
             G -->|"fail"| TPL["TemplateExplainer"]
             LLM --> OG{"output guard"}
@@ -89,7 +89,7 @@ flowchart TD
 | 4 | Score | `model.engine` | Probability (kept in memory, never logged or returned) |
 | 5 | Decide | `service.decide` | `ALLOW` / `REVIEW` / `BLOCK` + risk level |
 | 6 | Explain the score | `model.reasons` | Up to 3 `(ReasonCode, Level)` pairs (REVIEW/BLOCK only) |
-| 7 | Audit append | `audit.chain` | Entry with codes, decision, model version, prev hash |
+| 7 | Audit append | `audit.chain` | Entry with codes, decision, model version, prev hash (hash only; signing happens in a background thread) |
 | 8 | Enqueue | `outbox.queue` | `explain_jobs` row with codes/levels/language only |
 | 9 | Respond | FastAPI | `Decision` (no PII, no exact score) + `server_ms` |
 
@@ -104,7 +104,7 @@ Steps 4–9 never see PII, because `privacy.strip()` is the only function that r
 | `amount_to_balance` | `amount / (oldbalanceOrg + 1)` | Core scam signal |
 | `drains_account` | `amount >= oldbalanceOrg` | 0/1 |
 | `payee_is_merchant` | `nameDest` starts with `M` (serving: payee type) | 0/1 |
-| `payee_prior_inbound` | history store, counted chronologically | Low = new/rarely used recipient |
+| `payee_prior_inbound` | history store, counted chronologically; bucketed 0 / 1–3 / 4+ | Low = new/rarely used recipient. The store is **seeded at startup** (PaySim counts + demo seed), so a fresh service doesn't treat every payee as new |
 | `payee_balance_before_zero` | `oldbalanceDest == 0` (if known) | Mule-account signal |
 | `hour_of_day` | `step % 24` (serving: timestamp hour) | |
 
@@ -125,7 +125,7 @@ Closed set, defined once in `contracts.py`. The prompt builder, template explain
 | `UNUSUAL_TIME` | `hour_of_day` | The payment is at an unusual time. |
 | `OTHER_PATTERN` | anything not mapped | Something else about the payment looks unusual. |
 
-`Level` ∈ {`LOW`, `MEDIUM`, `HIGH`} comes from fixed buckets on the feature value (e.g. `amount_to_balance` ≥ 0.9 → `HIGH`). Bucket edges live in `model/reasons.py` and are documented in the model card. **Codes and levels never contain numbers from the transaction.**
+`Level` ∈ {`LOW`, `MEDIUM`, `HIGH`} comes from fixed buckets on the feature value (e.g. `amount_to_balance` ≥ 0.9 → `HIGH`). Bucket edges live in `model/reasons.py` and are documented in the model card. **Codes and levels never contain numbers from the transaction.** A feature becomes a code only if its SHAP contribution is ≥ `MIN_CONTRIB` (start at +0.1 log-odds). If none qualifies, the code is `OTHER_PATTERN`.
 
 Example prompt (the only shape the guard accepts):
 ```
@@ -161,7 +161,7 @@ Every one of these is registered in `leak_audit/sinks.py` and scanned. **If you 
 | ID | Invariant | Enforced by |
 |---|---|---|
 | I1 | Only `privacy.strip()` receives PII; nothing downstream can hold free text | Types + M1 PII barrier test |
-| I2 | The LLM prompt is built only from the template and enum values; **no digits** | `explainer.guard` + M5 guard tests |
+| I2 | The LLM prompt is exactly the fixed template rendered with enum values (the guard re-renders and compares byte for byte); **no digits** in variable parts | `explainer.guard` + M5 guard tests |
 | I3 | The decision path never waits on the LLM | Separate container + outbox; M5 latency-isolation gate |
 | I4 | Logs use a field **allowlist**; unknown fields are dropped, not redacted | `privacy.redact_log` + M3 log test |
 | I5 | Responses carry no PII and no exact score | Contract tests |
@@ -195,7 +195,7 @@ ShieldZ/
 │   ├── config.py              # paths, thresholds file, env vars
 │   ├── privacy/               # strip.py, tokenize.py (HMAC), redact_log.py (allowlist logging)
 │   ├── features/              # engineer.py (train + serve), history.py (token-keyed store)
-│   ├── model/                 # data.py, train.py, evaluate.py, engine.py, reasons.py, export.py
+│   ├── model/                 # data.py, train.py, evaluate.py, engine.py, reasons.py, export.py (LinuxONE operator)
 │   ├── service/               # app.py (FastAPI), decide.py, static/ (demo UI)
 │   ├── outbox/                # queue.py (SQLite WAL outbox)
 │   ├── explainer/             # prompt.py, guard.py, template.py, journal.py (proof build); granite.py, worker.py (LinuxONE operator)
@@ -244,7 +244,7 @@ LinuxONE VM (s390x, Ubuntu 24.04, Docker)  — user linux1
 ```
 
 - **No public API port.** Laptops reach the API with `ssh -L 8000:localhost:8000 linux1@<vm-ip>`. Only SSH (22) and Jupyter (38888, already opened during setup) are reachable from outside.
-- CPU split is decided in M0 from `nproc` (e.g. 4 vCPUs → API `0-1`, explainer `2-3`). During benchmarks, stop idle Jupyter kernels so they don't add noise.
+- The CPU split is computed from `nproc` by `make z-up` (runbook §5; e.g. 2 vCPUs → API `0`, explainer `1`). During benchmarks, stop idle Jupyter kernels so they don't add noise.
 - Commands are in [LINUXONE_RUNBOOK.md](LINUXONE_RUNBOOK.md).
 
 ---

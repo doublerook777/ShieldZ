@@ -210,12 +210,14 @@ Before any sticky note reaches Granite, a guard checks it:
 ```
  Is it in the exact sticky-note format?        ✅ / ❌
  Are all the labels from our list of 8?        ✅ / ❌
+ Is it EXACTLY what our template would print   ✅ / ❌
+   for these labels? (re-print and compare)
  Does it contain ANY digit (0-9)?              ❌ must be none!
 ```
 
-Why "no digits at all"? Phone numbers, account numbers and amounts **all contain digits**. One simple rule blocks all of them. If anything looks wrong, the guard refuses, and a pre-written template message is used instead.
+Why "no digits at all"? Phone numbers, account numbers and amounts **all contain digits**. One simple rule blocks all of them. And because the guard re-prints the note itself and compares, a **name** or any other sneaky text can't slip in either, even though names have no digits. If anything looks wrong, the guard refuses, and a pre-written template message is used instead.
 
-A second guard checks Granite's **answer**. If it contains numbers, links or "@", we throw it away and use the template. An AI that invents a phone number or a link would look exactly like a scam!
+A second guard checks Granite's **answer**. If it contains anything that looks like personal data (long numbers, money amounts, phone numbers), links or "@", we throw it away and use the template. Small harmless numbers like "24 hours" are fine. We also count how often Granite's answer is accepted, so we can't secretly be showing templates all the time. An AI that invents a phone number or a link would look exactly like a scam!
 
 ### Why a separate back room? (**asynchronous** + **outbox**)
 
@@ -276,13 +278,15 @@ A sneaky leak might not look like the original. We search for disguises too:
  Base64:          Kzkx…            (a way computers re-write text)
  Hex:             2b3931…          (another one)
  Scrambled (hash): 5e88489…        (would be crackable, so it counts as a leak too)
- Partial:         "9003147"        (6+ digits in a row also counts)
+ Partial:         "…ref 9003147 …"  (7+ of its digits standing on their own also count)
 ```
 
 ### Testing the tester: hide the Easter eggs 🥚
 
 How do we know the inspector isn't just blind? Before each official run, we **deliberately hide 10 canaries** in a fake log file. The inspector must find **exactly those 10**. If it finds 10/10 planted ones and 0 elsewhere, we trust its "0 leaks".
 (The technical name is a **positive control**.)
+
+And the opposite test: we also invent **1,000 extra fake people that we never send in**. If the inspector "finds" any of *them*, it's seeing things that aren't there (a false alarm), and we tighten its rules. The technical name is a **negative control**. Together, the two tests show the inspector finds real leaks and doesn't make up fake ones.
 
 This test is the heart of ShieldZ. It turns "trust us, it's private" into **"here's the measured proof, rerun it yourself."**
 
@@ -437,7 +441,7 @@ We're 4 people with 18 hours, overnight.
 | SHAP | Fairly splitting the "risk bill" between the clues |
 | Reason code | A fixed label like `NEW_RECIPIENT`, never real numbers |
 | LLM / Granite | AI that writes text; ours only sees reason labels |
-| Guard | Bouncer for the AI's input: no digits, only known labels |
+| Guard | Bouncer for the AI's input: must exactly match our template, only known labels, no digits |
 | HMAC | A secret rubber stamp that turns account numbers into jumbles |
 | Canary | A fake person planted to detect leaks |
 | Positive control | Hiding test eggs to prove the egg-finder works |

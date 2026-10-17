@@ -108,14 +108,19 @@ git switch -c docs/m3-results && git add results && git commit -m "docs(progress
 
 ```bash
 docker build -t shieldz:latest -f containers/Containerfile .
-docker run -d --name shieldz-api       --network host --cpuset-cpus 0-1 \
+N=$(nproc)                                      # never ask for cores that don't exist
+if   [ "$N" -ge 4 ]; then API_CPUS=0-1; EXP_CPUS=2-$((N-1))
+elif [ "$N" -eq 3 ]; then API_CPUS=0;   EXP_CPUS=1-2
+elif [ "$N" -eq 2 ]; then API_CPUS=0;   EXP_CPUS=1
+else echo "1 vCPU: drop --cpuset-cpus and give the explainer --cpus 0.5"; fi
+docker run -d --name shieldz-api       --network host --cpuset-cpus "$API_CPUS" \
   -v ~/shared/ShieldZ/artifacts:/app/artifacts shieldz:latest api        # binds 127.0.0.1:8000 only
-docker run -d --name shieldz-explainer --network host --cpuset-cpus 2-3 \
+docker run -d --name shieldz-explainer --network host --cpuset-cpus "$EXP_CPUS" \
   -v ~/shared/ShieldZ/artifacts:/app/artifacts shieldz:latest explainer
 docker ps; docker stats --no-stream
 curl -s localhost:8000/healthz
 ```
-- Choose the `--cpuset-cpus` ranges from `nproc` (recorded in M0). Leave the `notebook` container unpinned, but shut down its kernels during benchmarks.
+- `make z-up` computes the core split from `nproc` as above, so it never asks for cores the VM doesn't have. Leave the `notebook` container unpinned, but shut down its kernels during benchmarks.
 - If a container won't start with seccomp errors, add `--security-opt seccomp=unconfined` (the official README mentions this).
 - Stop: `docker rm -f shieldz-api shieldz-explainer` (`make z-down`).
 - Because of `--network host`, the API must bind `127.0.0.1`, **not** `0.0.0.0`. Otherwise it would be reachable from the internet if anyone opens port 8000 in the firewall.
