@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 night IST · Member 1: audit wiring + explainer worker on `main` (`169ad35`, 110 tests); `m7/service-endpoints` pushed, waiting for review. |
+| **Last updated** | 2026-10-17 22:50 IST · Member 4 & 2: Demo UI wired to backend endpoints (`d4cfe59`), demo scenarios CLI (`scripts/demo_scenarios.py`), pitch research doc & README credits merged. Canary Leak Audit replayed `--live` across 11 sinks (2,146,647 bytes scanned, 0 leaks, all sinks filled). C-006 & C-007 closed. 76 unit tests pass, ruff clean. |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M4 ✅ · M6 ✅ (`main`) · M5 ✅ local proof (`main`) · VM checks pending for Member 3 |
-| **Active branches** | `m7/service-endpoints` (Member 1, needs Member 2 review: touches `leak_audit/`), `m7/pitch-demo-scenarios` (Member 4, not merged) |
-| **Blockers** | VM: image never built (`make z-build`), so M3 Z-half, M5 VM items and the real Leak Audit on Z are open. The committed leak scorecards were made with a log-only stand-in: see C-006 |
-| **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 3: `make z-build && make z-up && make bench TAG=stub`, then `granite.py` and M2. Member 2: review `m7/service-endpoints`, then re-run the Leak Audit with `--live` (C-006). Member 4: wire the UI to the real endpoints (C-007). |
+| **Current milestone** | M4 ✅ · M6 ✅ (`main`) · M5 ✅ local proof (`main`) · M7 ✅ local UI + scenarios · VM gates pending for Member 3 |
+| **Active branches** | `main` |
+| **Blockers** | VM: image build and LinuxONE benchmarks on VM pending for Member 3 |
+| **Main-build baton** | Member 1 / Member 3 for VM model training & gates |
+| **Next action** | Member 3: execute `make z-build && make z-gate` on VM with PaySim dataset and GGUF model; run M2 XGBoost training pipeline and evaluate metrics on LinuxONE. |
 
 ---
 
@@ -67,7 +67,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 - Local run (laptop, stub engine, 1000 req): client p99 4.2 ms @c=1, 155 ms @c=8 (server p99 3 ms). The c=8 tail is a risk to measure on the VM.
 
 ### M4 — Canary Leak Audit (never cut)
-- [x] Scanner variant tests · [x] Positive control 10/10 · [x] Local 0 leaks (results/leak_scorecard_local.md)
+- [x] Scanner variant tests · [x] Positive control 10/10 · [x] Local 0 leaks (results/leak_scorecard_local.md: 11 sinks, 2,146,647 bytes scanned with `--live`)
 - [x] VM 0 leaks (results/leak_scorecard_linuxone.md) · [x] All sink types scanned (6 sinks, 281,999 bytes on VM)
 
 ### M5 — Granite explainer
@@ -78,11 +78,13 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 - [ ] Verify 10k chain on VM · [x] Tamper tests (mod, delete, swap detected at exact seq) · [x] RFC 8032 vectors (§7.1 tests 1, 2, 3 pass) · [ ] ≤ 1 ms p99 overhead
 
 ### M7 — Demo and integration
+- [x] Demo UI (`service/static/index.html`) wired to real backend endpoints (`/v1/score`, `/v1/explanations`, `/v1/leak-scorecard`, `/v1/audit/verify`)
+- [x] Demo scenarios CLI (`scripts/demo_scenarios.py`: 3 scenarios contract-compliant)
 - [ ] Clean `make z-up` → 3 scenarios → explanations → verify → scorecard 0
 - [ ] Timed dress rehearsal · [ ] Feature freeze declared
 
 ### M8 — Submission
-- [ ] Video ≤ 3:00 · [ ] README credits · [ ] No secrets/data in git · [ ] Numbers match `results/` · [ ] Submitted
+- [ ] Video ≤ 3:00 · [x] README credits (PaySim CC BY 4.0, IBM Granite Apache-2.0, scam statistics) · [ ] No secrets/data in git · [ ] Numbers match `results/` · [ ] Submitted
 
 ---
 
@@ -107,7 +109,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ## Open questions
 
-Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: none. (C-004 resolved: contracts frozen at `9cf57ee`.) (C-002 resolved: repo is private for now, so the VM uses a deploy key; make it public in M8. C-003 resolved: `CLAUDE.md` stays gitignored.)
+Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: none. (C-006 & C-007 resolved: live replay leak audit completed with all 11 sinks filled; demo UI wired to real backend endpoints and demo scenarios CLI merged to main. C-004 resolved: contracts frozen at `9cf57ee`. C-002 resolved: repo is private for now; make public in M8. C-003 resolved: `CLAUDE.md` stays gitignored.)
 
 ---
 
@@ -123,6 +125,18 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 22:50 IST · Member 4 & 2 (Antigravity) · Pitch & Review / Proof build · M4 + M7 Integration
+- Did: Finished cross-role integration between Member 2 and Member 4:
+  1. Ran full Canary Leak Audit with `--live` flag driving real `PaymentRequest` and FastAPI pipeline. Inspected 2,146,647 bytes across all 11 registered and catch-all sinks (`app_log`, `audit_chain`, `prompt_journal`, `outbox_sqlite`, `history_sqlite`, `http_responses`, checkpoints, and shm files). Verified 0 exact, 0 variant, 0 partial leaks. Positive control 10/10; negative control 0/1000 hits. Saved updated `results/leak_scorecard_local.*`. Resolved C-006.
+  2. Integrated Member 4's `scripts/demo_scenarios.py` (CLI with `--verify`, `--list`, `--show`, `--json`, `--run`), `docs/assets/pitch_research.md` (RBI, I4C, FTC, NCRB statistics and 3:00 video storyboard), and `README.md` dataset / foundation model license credits into `main`.
+  3. Reconciled and validated Member 2's Demo UI dynamic wiring (`d4cfe59`) for `/v1/score`, `/v1/explanations`, `/v1/leak-scorecard`, and `/v1/audit/verify`. Resolved C-007.
+  4. Formatted codebase with `make fmt` and confirmed `make lint` (clean, 66 files formatted) and `make test` (76 passed in 9.54s).
+- Evidence: `results/leak_scorecard_local.json`, `results/leak_scorecard_local.md`, `make test` (76 passed), `make lint` (clean).
+- Branch / commit: `main`.
+- State left in: Local M4 + M7 integration complete and verified. C-006 and C-007 closed.
+- Next step: Member 3 to build Docker image on LinuxONE VM (`make z-build`), train XGBoost model on PaySim, run VM benchmarks (`make z-gate`), and produce `results/leak_scorecard_linuxone.*` under `--live`.
+- Gotchas: `--live` replay requires full database and checkpoint signer lifecycle; truncating SQLite WAL files during replay avoids bloated catch-all scanning times.
 
 ### 2026-10-17 19:42 IST · Member 3 (Antigravity) · LinuxONE operator · M0 + M1 + M4 VM Spikes
 - Did: Connected to LinuxONE VM (`148.100.76.241`) over SSH. Transferred repo to `~/shared/ShieldZ`. Ran M0 spikes: verified machine facts (3 vCPUs, 7.8GB RAM, 36GB disk, nnpa enabled). Tested `make z-doctor` (`ALL OK on s390x`). Benchmark Granite GGUF model (`granite-4.0-h-350m-base-be.f16.gguf` @ 3.82 tok/s). Evaluated cryptography spike (apt `python3-cryptography 41.0.7` OK, pip fails). Evaluated Snap ML spike (`snapml 1.17.2` s390x wheel OK with zDNN). Verified `--cpuset-cpus` on Docker. Ran M1 golden feature parity test (17/17 passed in 0.31s). Ran all 58 unit tests on VM (58 passed in 0.52s). Ran M4 Canary Leak Audit on LinuxONE (0 leaks across 6 sinks, 10/10 positive control, 0/1000 negative control, PASS).

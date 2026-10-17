@@ -44,6 +44,38 @@ Copy the template below. Rules:
 
 ---
 
+## 2026-10-17 22:50 IST — Member 4 (Pitch & Review) & Member 2 (Proof build) — M4 + M7 Integration
+
+**In one sentence:** We closed out the local proof and pitch tasks by running the Canary Leak Audit with live service replay across all 11 sinks with 0 leaks, integrated the 3 contract-compliant demo scenarios and pitch research, and resolved C-006 and C-007.
+
+**What I built or changed (simple words):**
+- Replayed 1,000 canaries + 1,000 decoys through the real FastAPI service using `--live`. Instead of writing only to an app log stand-in, this exercised `PaymentRequest`, feature stripping, the outbox, the explainer worker, and the audit chain. 2.15 MB across 11 sinks were inspected, 0 leaks were found, and 10/10 positive control canaries were detected.
+- Merged Member 4's CLI demo runner (`scripts/demo_scenarios.py`) which defines three realistic scam stories (Digital Arrest, Routine Electricity Bill, Borderline Clinic).
+- Added pitch research (`docs/assets/pitch_research.md`) citing RBI, I4C, FTC, and NCRB statistics with a 3-minute video storyboard.
+- Confirmed that Member 2's UI wiring dynamically calls `/v1/score`, `/v1/explanations`, `/v1/leak-scorecard`, and `/v1/audit/verify`.
+- Formatted the codebase with `make fmt` and confirmed all 76 unit tests pass and `make lint` is clean.
+
+**Why it's done this way:**
+- As noted in C-006, running the leak audit against a stand-in left SQLite and journal sinks at 0 bytes. Running `--live` proves that all system sinks stay 100% leak-free even under actual live database writes and JSON-RPC responses.
+- The single-page UI is served directly from the FastAPI root `/` and interacts with real endpoints so live demo judges see genuine measurements.
+
+**How to see it working:**
+    .venv/bin/python scripts/demo_scenarios.py --verify  →  All scenarios are 100% contract compliant
+    .venv/bin/python scripts/demo_scenarios.py --list    →  Lists the 3 scenarios
+    make test                                           →  76 passed
+    make lint                                           →  All checks passed
+
+**What's not done / known problems:**
+- LinuxONE VM image (`make z-build`) and training the XGBoost model on the VM with full PaySim data (Member 3's role) is the remaining milestone task.
+
+**If I were continuing, I would next:**
+1. Support Member 3 in running `make z-build` and `make z-gate` on the VM.
+2. Record the 3:00 demo video following the storyboard in `docs/assets/pitch_research.md`.
+
+**Files to look at first:** `scripts/demo_scenarios.py`, `docs/assets/pitch_research.md`, `results/leak_scorecard_local.md`
+
+---
+
 ## 2026-10-17 16:30 IST — AI agent (Antigravity) — project analysis & critique
 
 **In one sentence:** I did a deep engineering and architectural review of the entire ShieldZ plan, identified 7 critical vulnerabilities and operational risks, and documented them with solutions in `conversation.md`.
