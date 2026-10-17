@@ -43,9 +43,9 @@ All code was written during the event window (Oct 17–18, 2026). Datasets and o
 
 | Resource | Use | Link | Licence |
 |---|---|---|---|
-| PaySim (Kaggle) | Training / evaluation | https://www.kaggle.com/datasets/ealaxi/paysim1 | _TODO: confirm in M0_ |
-| IBM LinuxONE Community Cloud + Jupyter Lab ML image | Platform | https://github.com/linuxone-community-cloud/jupyter-lab-ml | — |
-| IBM Granite | Explanations | _TODO: exact model link (M0)_ | Apache-2.0 (verify) |
+| PaySim (Kaggle) | Training / evaluation | https://www.kaggle.com/datasets/ealaxi/paysim1 | CC BY 4.0 |
+| IBM LinuxONE Community Cloud + Jupyter Lab ML image | Platform | https://github.com/linuxone-community-cloud/jupyter-lab-ml | Apache-2.0 / Community |
+| IBM Granite Foundation Models | Explanations | https://github.com/ibm-granite/granite-3.0-language-models | Apache-2.0 |
 | XGBoost | Model | https://github.com/dmlc/xgboost | Apache-2.0 |
 | llama.cpp / llama-cpp-python | LLM runtime | https://github.com/abetlen/llama-cpp-python | MIT |
 | FastAPI, Uvicorn, Pydantic | Service | https://fastapi.tiangolo.com | MIT / BSD |
@@ -56,4 +56,8 @@ All code was written during the event window (Oct 17–18, 2026). Datasets and o
 
 _Add a row for every new library (rule 5 of the event)._
 
-Problem statistics used in the pitch (FTC Consumer Sentinel, RBI, NCRB) are cited with links in the video and here: _TODO_.
+### Problem statistics cited in the pitch & video:
+1. **Reserve Bank of India (RBI) Annual Report 2023–24:** Digital payment fraud cases surged to **36,075 cases** involving **₹1,457 crore** in FY24, with digital channels accounting for over 85% of incidents ([RBI Publications](https://www.rbi.org.in)).
+2. **Indian Cyber Crime Coordination Centre (I4C, MHA):** Over **₹1,750 crore** lost to financial cyber scams between Jan–April 2024, with over **₹120 crore** lost specifically to "Digital Arrest" coercion scams targeting senior citizens ([National Cyber Crime Reporting Portal](https://cybercrime.gov.in)).
+3. **Federal Trade Commission (FTC) Consumer Sentinel 2023 Data Book:** Consumers reported losing **$10.0 billion** to fraud in 2023. Imposter scams were the #1 reported category. Victims aged 80+ experienced a median loss of **$1,450**—nearly triple younger adults ([FTC Consumer Sentinel](https://www.ftc.gov/reports/consumer-sentinel-network-data-book-2023)).
+4. **National Crime Records Bureau (NCRB) Crime in India:** 24.4% year-over-year increase in registered cybercrime, with 69.8% involving financial fraud and deception ([NCRB](https://ncrb.gov.in)).
