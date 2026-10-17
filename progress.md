@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 · contracts frozen, M1 merged to `main` (Member 1, Claude Code) |
+| **Last updated** | 2026-10-17 19:20 IST · M6 tamper-evident audit trail & Ed25519 signing completed on `m6/proof-audit-trail` (Member 2, Antigravity) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M1 gate: remaining items are VM-side (Member 3: golden parity, full PaySim load) · M3: code and local gate done, waiting on the VM (build, `/healthz`, latency) |
-| **Active branches** | main |
-| **Blockers** | None. The VM is the bottleneck: no LinuxONE facts are recorded yet, so M0 spikes and the M1 VM checks (Member 3) gate M2 |
+| **Current milestone** | M6 ✅ local (Member 2, `m6/proof-audit-trail`) · M1/M3 waiting on VM (Member 3) · M5 next for Member 2 |
+| **Active branches** | main · `m6/proof-audit-trail` (Member 2, pushed) |
+| **Blockers** | None. VM checks pending for Member 3 |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 3: M0 VM spikes, then M1 task 6 + M2 (model). Member 2: M6 (audit chain; C-004 answers are in the thread). Member 1: M3 Z-side items once the VM facts are in; meanwhile M3 hardening. Member 4: pitch statistics, demo scenarios |
+| **Next action** | Member 2: M5 Granite explainer (prompt, allowlist guard, template fallback). Member 3: M0 VM spikes, M1 golden parity + M2 (model). |
 
 ---
 
@@ -75,7 +75,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 - [ ] p99 < 50 ms with explainer busy (got ___) · [ ] Leak Audit with real Granite = 0 · [ ] Sample explanations saved
 
 ### M6 — Audit trail
-- [ ] Verify 10k chain · [ ] Tamper tests · [ ] RFC 8032 vectors (if own impl) · [ ] ≤ 1 ms p99 overhead
+- [ ] Verify 10k chain on VM · [x] Tamper tests (mod, delete, swap detected at exact seq) · [x] RFC 8032 vectors (§7.1 tests 1, 2, 3 pass) · [ ] ≤ 1 ms p99 overhead
 
 ### M7 — Demo and integration
 - [ ] Clean `make z-up` → 3 scenarios → explanations → verify → scorecard 0
@@ -123,6 +123,19 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 19:20 IST · Member 2 (Antigravity) · proof build · M6 (audit trail)
+- Did: Implemented full M6 tamper-evident audit trail on branch `m6/proof-audit-trail`.
+  - `chain.py`: `AuditChain` append-only JSONL writer with in-process lock, canonical JSON SHA-256 hash chaining, resume from existing file, `load_chain()`.
+  - `_ed25519_rfc8032.py`: Pure-Python RFC 8032 Ed25519 implementation (curve arithmetic, clamping, signing, verification, PKCS#8/SPKI PEM export/import).
+  - `signing.py`: `CheckpointSigner` background daemon thread (every 100 entries or 1s), auto-backend (cryptography / RFC 8032 fallback), `checkpoint_now()`, `generate_keypair()`, `verify_signature()`.
+  - `verify.py`: `verify_audit_trail()` + CLI (`python -m shieldz.audit.verify`). Detects modified bytes, deleted lines, swapped lines, and invalid checkpoint signatures at exact `seq`.
+  - `tests/unit/test_audit.py`: 9 unit tests covering hash chaining, resume, checkpoint signing/verification, all RFC 8032 §7.1 test vectors (tests 1, 2, 3), and all tamper detection scenarios.
+- Evidence: `make test` 82 passed in 6.87s, `make lint` clean, `make leak-audit` PASS (0 leaks across 6 sinks, 631,919 bytes scanned).
+- Branch / commit: `m6/proof-audit-trail` pushed (`481ba90`).
+- State left in: M6 local ✅ done and tested. VM-side 10k verify test and ≤ 1 ms p99 latency check await VM availability.
+- Next step: M5 — Granite explainer (`prompt.py`, allowlist `guard.py`, `template.py`, `journal.py`).
+- Gotchas: When running `python -m shieldz.audit.verify`, lazy-load `verify_audit_trail` in `audit/__init__.py` to avoid runpy submodule warnings. Pure Python Ed25519 matches RFC 8032 §7.1 vectors byte-for-byte.
 
 ### 2026-10-17 17:42 IST · Member 2 (Antigravity) · proof build · M4 + C-004
 - Did: Completed full M4 Canary Leak Audit on branch `m4/proof-canary-leak-audit`. Canary generator (1,000 canaries + 1,000 decoys, Indian locale Faker), multi-variant LeakScanner (exact/case-fold/stripped/digits-only/URL/base64/hex/MD5/SHA1/SHA256/partial), SinkRegistry (all 6 ARCHITECTURE §5 sinks + catch-all artifacts walk), LeakScorecard, CLI (`python -m shieldz.leak_audit`), full orchestrator with StubService. Posted contract review in C-004.
