@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import multiprocessing as mp
 import platform
 import random
 import sqlite3
@@ -24,6 +25,7 @@ import httpx
 import numpy as np
 
 GATE_P99_MS = 50.0
+JSON = {"content-type": "application/json"}
 
 
 def make_payment(rng: random.Random, i: int) -> dict:
@@ -56,9 +58,14 @@ def pct(values: list[float]) -> dict:
     }
 
 
-async def run_level(client: httpx.AsyncClient, url: str, n: int, concurrency: int, seed: int):
+def _level_sync(args: tuple):
+    return asyncio.run(_level(*args))
+
+
+async def _level(url: str, n: int, concurrency: int, seed: int):
     rng = random.Random(seed)
-    payloads = [make_payment(rng, i) for i in range(n)]
+    # serialise before the clock starts, so the client's own JSON work isn't measured
+    payloads = [json.dumps(make_payment(rng, i)).encode() for i in range(n)]
     queue: asyncio.Queue = asyncio.Queue()
     for p in payloads:
         queue.put_nowait(p)
@@ -75,7 +82,7 @@ async def run_level(client: httpx.AsyncClient, url: str, n: int, concurrency: in
             except asyncio.QueueEmpty:
                 return
             t0 = time.perf_counter()
-            r = await client.post(url + "/v1/score", json=payload)
+            r = await client.post(url + "/v1/score", content=payload, headers=JSON)
             elapsed = (time.perf_counter() - t0) * 1000
             if r.status_code != 200:
                 errors += 1
@@ -85,7 +92,9 @@ async def run_level(client: httpx.AsyncClient, url: str, n: int, concurrency: in
             server_ms.append(body["server_ms"])
             decisions[body["decision"]] = decisions.get(body["decision"], 0) + 1
 
-    await asyncio.gather(*(worker() for _ in range(concurrency)))
+    limits = httpx.Limits(max_connections=concurrency)
+    async with httpx.AsyncClient(timeout=30.0, limits=limits) as client:
+        await asyncio.gather(*(worker() for _ in range(concurrency)))
     return client_ms, server_ms, decisions, errors
 
 
@@ -103,26 +112,47 @@ def git_sha() -> str:
         return "unknown"
 
 
-async def main(args: argparse.Namespace) -> int:
+def run_level(url: str, n: int, concurrency: int, procs: int, seed: int):
+    """`concurrency` connections spread over client processes, so one busy Python client doesn't
+    become the bottleneck and inflate the tail (the load generator shares the VM with the api)."""
+    procs = max(1, min(procs, concurrency))
+    per_proc, extra = divmod(concurrency, procs)
+    jobs = [
+        (url, n // procs + (i < n % procs), per_proc + (i < extra), seed + i) for i in range(procs)
+    ]
+    with mp.get_context("spawn").Pool(procs) as pool:
+        parts = pool.map(_level_sync, jobs)
+    decisions: dict[str, int] = {}
+    for _, _, d, _ in parts:
+        for k, v in d.items():
+            decisions[k] = decisions.get(k, 0) + v
+    return (
+        [x for p in parts for x in p[0]],
+        [x for p in parts for x in p[1]],
+        decisions,
+        sum(p[3] for p in parts),
+    )
+
+
+def main(args: argparse.Namespace) -> int:
     outbox_path = Path(args.outbox)
-    async with httpx.AsyncClient(timeout=30.0, limits=httpx.Limits(max_connections=64)) as client:
-        health = (await client.get(args.url + "/healthz")).json()
-        await run_level(client, args.url, args.warmup, 8, seed=1)
-        before = outbox_count(outbox_path)
-        levels = {}
-        sent = 0
-        for c in args.concurrency:
-            cm, sm, decisions, errors = await run_level(client, args.url, args.n, c, seed=100 + c)
-            sent += len(cm)
-            levels[str(c)] = {
-                "requests": len(cm),
-                "errors": errors,
-                "client_ms": pct(cm),
-                "server_ms": pct(sm),
-                "decisions": decisions,
-                "pass": errors == 0 and pct(cm)["p99"] < GATE_P99_MS,
-            }
-        after = outbox_count(outbox_path)
+    health = httpx.get(args.url + "/healthz", timeout=10.0).json()
+    run_level(args.url, args.warmup, 8, args.procs, seed=1)
+    before = outbox_count(outbox_path)
+    levels = {}
+    sent = 0
+    for c in args.concurrency:
+        cm, sm, decisions, errors = run_level(args.url, args.n, c, args.procs, seed=100 * c)
+        sent += len(cm)
+        levels[str(c)] = {
+            "requests": len(cm),
+            "errors": errors,
+            "client_ms": pct(cm),
+            "server_ms": pct(sm),
+            "decisions": decisions,
+            "pass": errors == 0 and pct(cm)["p99"] < GATE_P99_MS,
+        }
+    after = outbox_count(outbox_path)
 
     outbox_ok = None if before is None or after is None else (after - before) == sent
     result = {
@@ -132,6 +162,7 @@ async def main(args: argparse.Namespace) -> int:
         "engine": health.get("engine"),
         "model_version": health.get("model_version"),
         "n_per_level": args.n,
+        "client_procs": args.procs,
         "warmup": args.warmup,
         "gate_p99_ms": GATE_P99_MS,
         "levels": levels,
@@ -156,6 +187,7 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int, default=5000)
     ap.add_argument("--warmup", type=int, default=500)
     ap.add_argument("--concurrency", type=int, nargs="+", default=[1, 8])
+    ap.add_argument("--procs", type=int, default=4, help="client processes (default 4)")
     ap.add_argument("--outbox", default="artifacts/runtime/outbox.sqlite")
     ap.add_argument("--out", required=True)
-    raise SystemExit(asyncio.run(main(ap.parse_args())))
+    raise SystemExit(main(ap.parse_args()))

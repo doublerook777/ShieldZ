@@ -54,9 +54,13 @@ z-up: z-build
 z-down:
 	docker rm -f shieldz-api shieldz-explainer
 
+# The load client runs in the notebook container, not in shieldz-api, so it doesn't compete for the
+# api's pinned cores. Usage: make bench TAG=stub_w1   (SHIELDZ_WORKERS is set when starting the api)
 bench:
-	docker exec shieldz-api python scripts/bench_latency.py --n 5000 --warmup 500 \
-	  --concurrency 1 8 --out results/latency_$(TAG).json
+	docker exec notebook /opt/venv/bin/python $(JUPYTER_REPO)/scripts/bench_latency.py \
+	  --n 5000 --warmup 500 --concurrency 1 8 \
+	  --outbox $(JUPYTER_REPO)/artifacts/runtime/outbox.sqlite \
+	  --out $(JUPYTER_REPO)/results/latency_$(TAG).json
 
 verify:
 	$(PY) -m shieldz.audit.verify artifacts/runtime/audit/chain.jsonl

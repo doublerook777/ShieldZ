@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from shieldz.contracts import DecisionKind, Explanation, ExplanationSource, Language
-from shieldz.features.history import HistoryStore
+from shieldz.features.history import SqliteHistoryStore
 from shieldz.outbox.queue import Outbox
 from shieldz.privacy.redact_log import ALLOWED_FIELDS, setup_logging
 from shieldz.privacy.tokenize import Tokenizer
@@ -249,12 +249,12 @@ def test_decide_bands_and_threshold_validation(tmp_path):
     assert load_thresholds(f) == Thresholds(0.2, 0.7)
 
 
-def test_history_snapshot_restart_does_not_double_seed(tmp_path):
+def test_sqlite_history_survives_restart_without_double_seeding(tmp_path):
     tk = Tokenizer(PEPPER)
-    first = build_history(tk)
-    snap = tmp_path / "history.sqlite"
-    first.save(snap)
-    second = build_history(tk, snap)
+    path = tmp_path / "history.sqlite"
+    first = build_history(tk, path)
+    first.record(tk.token("DEMO-ELECTRICITY-BOARD"))
+    second = build_history(tk, path)  # a restart (or a second worker)
     token = tk.token("DEMO-ELECTRICITY-BOARD")
-    assert second.count(token) == first.count(token) == 5200
-    assert isinstance(second, HistoryStore)
+    assert first.count(token) == second.count(token) == 5201
+    assert isinstance(second, SqliteHistoryStore)

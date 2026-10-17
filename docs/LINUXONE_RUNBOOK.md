@@ -137,10 +137,11 @@ ssh -i ~/.ssh/l1cc.pem -N -L 8000:localhost:8000 linux1@<vm-ip>
 # then open http://localhost:8000/ in the laptop browser
 ```
 
-Latency benchmark (run **on the VM** so internet latency isn't measured):
+Latency benchmark (run **on the VM** so internet latency isn't measured). The load client runs in the `notebook` container so it doesn't share the api's pinned cores:
 ```bash
-docker exec shieldz-api python scripts/bench_latency.py --n 5000 --warmup 500 --concurrency 1 8 --out results/latency_<tag>.json
+make bench TAG=<tag>        # results/latency_<tag>.json; exit code 1 if p99 >= 50 ms or an outbox row is missing
 ```
+The api runs one process by default. `docker run ... -e SHIELDZ_WORKERS=2 ...` runs two (shared SQLite history/outbox keep them consistent). Try it only if p99 at concurrency 8 is too high. Do **not** use `uvicorn --workers` (it adds ~40 ms per keep-alive request); `shieldz.service.serve` is the supported launcher.
 Before benchmarking, shut down idle Jupyter kernels (Jupyter → Kernel → Shut Down All Kernels).
 
 ---

@@ -14,7 +14,6 @@ from fastapi import FastAPI, Path, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from shieldz.config import runtime_dir
 from shieldz.contracts import Decision, Explanation, PaymentRequest
 from shieldz.privacy.redact_log import log_event, setup_logging
 from shieldz.service.pipeline import Pipeline
@@ -35,8 +34,6 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
         p: Pipeline = app.state.pipeline
         log_event("startup", engine=p.engine.name, model_version=p.engine.version)
         yield
-        if owns_pipeline:
-            p.history.save(runtime_dir() / "history.sqlite")
 
     app = FastAPI(title="ShieldZ", lifespan=lifespan, docs_url=None, redoc_url=None)
 

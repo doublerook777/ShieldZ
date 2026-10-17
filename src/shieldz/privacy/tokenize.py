@@ -27,12 +27,18 @@ def load_pepper(path: Path | None = None) -> bytes:
         pass
     path.parent.mkdir(parents=True, exist_ok=True)
     pepper = os.urandom(PEPPER_BYTES)
-    try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:  # lost the race: use the winner's pepper
-        return bytes.fromhex(path.read_text().strip())
+    # Write a private temp file, then hard-link it into place: the link is atomic, so a process
+    # that loses the race can never read a half-written pepper.
+    tmp = path.with_name(f".{path.name}.{os.urandom(4).hex()}.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w") as f:
         f.write(pepper.hex())
+    try:
+        os.link(tmp, path)
+    except FileExistsError:  # lost the race: use the winner's pepper
+        return bytes.fromhex(path.read_text().strip())
+    finally:
+        os.unlink(tmp)
     return pepper
 
 

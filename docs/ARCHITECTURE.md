@@ -150,7 +150,7 @@ Every one of these is registered in `leak_audit/sinks.py` and scanned. **If you 
 | Outbox + explanations | `artifacts/runtime/outbox.sqlite` (all text columns) | api, explainer |
 | Audit chain | `artifacts/runtime/audit/chain.jsonl` | api |
 | Prompt journal | `artifacts/runtime/journal/prompts.jsonl` | explainer |
-| History store | `artifacts/runtime/history.sqlite` | api |
+| History store | `artifacts/runtime/history.sqlite` (+ `-wal`; shared by all api workers) | api |
 | HTTP responses | captured by the replay client | api |
 | Catch-all | every file under `artifacts/runtime/**` | anything |
 

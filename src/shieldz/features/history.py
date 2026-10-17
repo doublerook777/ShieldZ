@@ -15,6 +15,7 @@ import sqlite3
 import threading
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 
@@ -29,7 +30,19 @@ def bucket_prior_inbound(counts):
     return (counts >= 1).astype(np.int64) + (counts >= 4).astype(np.int64)
 
 
+class History(Protocol):
+    """What `engineer()` and the service need from a store."""
+
+    def count(self, token: str) -> int: ...
+
+    def bucket(self, token: str) -> int: ...
+
+    def record(self, token: str) -> None: ...
+
+
 class HistoryStore:
+    """In-memory store: training, tests, single-process use."""
+
     def __init__(self) -> None:
         self._counts: dict[str, int] = {}
         self._lock = threading.Lock()
@@ -69,3 +82,78 @@ class HistoryStore:
     def load(self, path: Path) -> None:
         with sqlite3.connect(path) as db:
             self.seed_counts(db.execute("SELECT token, n FROM history"))
+
+
+class SqliteHistoryStore:
+    """Same interface, shared by every api worker process through one SQLite file (WAL).
+
+    Counts stay consistent across workers: `record` is a single atomic upsert, and seeding runs
+    once per seed name (guarded by a transaction), so concurrent starts cannot double-seed.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._local = threading.local()
+        db = self._conn()
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS history (token TEXT PRIMARY KEY, n INTEGER NOT NULL)"
+        )
+        db.execute("CREATE TABLE IF NOT EXISTS seeded (name TEXT PRIMARY KEY)")
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self.path, timeout=5.0, isolation_level=None)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            self._local.conn = conn
+        return conn
+
+    def __len__(self) -> int:
+        return self._conn().execute("SELECT COUNT(*) FROM history").fetchone()[0]
+
+    def count(self, token: str) -> int:
+        row = self._conn().execute("SELECT n FROM history WHERE token = ?", (token,)).fetchone()
+        return 0 if row is None else row[0]
+
+    def bucket(self, token: str) -> int:
+        return int(bucket_prior_inbound(self.count(token)))
+
+    _UPSERT = (
+        "INSERT INTO history (token, n) VALUES (?, ?) ON CONFLICT(token) DO UPDATE SET n = n + ?"
+    )
+
+    def record(self, token: str) -> None:
+        self._conn().execute(self._UPSERT, (token, 1, 1))
+
+    def seed_counts(self, items: Iterable[tuple[str, int]]) -> None:
+        db = self._conn()
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            db.executemany(self._UPSERT, ((t, int(n), int(n)) for t, n in items))
+            db.execute("COMMIT")
+        except BaseException:
+            db.execute("ROLLBACK")
+            raise
+
+    def seed_from_csv(self, tokenizer: Tokenizer, path: Path = DEMO_SEED) -> None:
+        """Idempotent: the first process to get here seeds, the others see the marker and skip."""
+        db = self._conn()
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            if db.execute("SELECT 1 FROM seeded WHERE name = ?", (path.name,)).fetchone():
+                db.execute("COMMIT")
+                return
+            with open(path, newline="") as f:
+                rows = [
+                    (tokenizer.token(r["payee_account"]), int(r["prior_inbound"]))
+                    for r in csv.DictReader(f)
+                ]
+            db.executemany(self._UPSERT, ((t, n, n) for t, n in rows))
+            db.execute("INSERT INTO seeded (name) VALUES (?)", (path.name,))
+            db.execute("COMMIT")
+        except BaseException:
+            db.execute("ROLLBACK")
+            raise

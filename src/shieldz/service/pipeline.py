@@ -28,7 +28,7 @@ from shieldz.contracts import (
     ReasonCode,
 )
 from shieldz.features.engineer import engineer
-from shieldz.features.history import HistoryStore
+from shieldz.features.history import History, HistoryStore, SqliteHistoryStore
 from shieldz.outbox.queue import Outbox
 from shieldz.privacy.redact_log import log_event
 from shieldz.privacy.strip import strip
@@ -53,13 +53,10 @@ def load_engine(name: str | None = None) -> Engine:
     raise ValueError(f"unknown engine {name!r}")
 
 
-def build_history(tokenizer: Tokenizer, snapshot: Path | None = None) -> HistoryStore:
-    """Restart continuity: a saved snapshot already contains the seed, so load it instead."""
-    history = HistoryStore()
-    if snapshot is not None and snapshot.exists():
-        history.load(snapshot)
-    else:
-        history.seed_from_csv(tokenizer)
+def build_history(tokenizer: Tokenizer, path: Path | None = None) -> History:
+    """With a path: the SQLite store shared by all api workers, seeded once. Without: in memory."""
+    history = SqliteHistoryStore(path) if path is not None else HistoryStore()
+    history.seed_from_csv(tokenizer)
     return history
 
 
@@ -68,7 +65,7 @@ class Pipeline:
     engine: Engine
     thresholds: Thresholds
     tokenizer: Tokenizer
-    history: HistoryStore
+    history: History
     outbox: Outbox
     audit_append: AuditAppend | None = None  # M6 plugs the hash chain in here
 

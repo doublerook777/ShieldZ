@@ -158,9 +158,15 @@ Entry template:
 - Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
 - Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
 
+### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M3 hardening (multi-worker)
+- Did: `SqliteHistoryStore` (shared by api workers, atomic upsert, seed-once), atomic pepper creation (temp file + hard link), `service/serve.py` multi-worker launcher (`SHIELDZ_WORKERS`), bench client now multi-process and pre-serialised, `make bench` runs the client in the notebook container. `tests/unit/test_multiprocess.py` (4 processes: counts, single seed, outbox, pepper race).
+- Evidence: uvicorn `--workers 2` added ~40 ms to every keep-alive request (even `/healthz`; curl without keep-alive was fine). Cause not proven; a listening socket with TCP_NODELAY (`serve.py`) removes it (2.5 ms). Laptop bench, stub engine: c=1 p99 4.0 ms, c=8 p99 23 ms with the multi-process client (75-150 ms with the old single-process client, so that tail was the load generator, not the api).
+- State left in: default is 1 worker; the VM benchmark decides whether 2 is needed. Not yet verified on s390x.
+- Gotchas: Never `docker exec shieldz-api ... bench` (shares the api's cores). `privacy/tokenize.py` changed (pepper race): needs a human reviewer per AGENTS.md.
+
 ### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M3 (local half)
 - Did: `service/{decide,stub_engine,pipeline,app}.py`, `outbox/queue.py` (WAL, per-thread connections), `privacy/redact_log.py` (allowlist), `clock.py`, `scripts/bench_latency.py`, `containers/{Containerfile,entrypoint.sh}`, `tests/unit/test_service.py`. 73 tests pass.
-- Evidence: local benchmark above; a real `uvicorn` start creates the pepper, logs only allowlisted fields, saves `history.sqlite` on shutdown.
+- Evidence: local benchmark above; a real `uvicorn` start creates the pepper, logs only allowlisted fields, keeps payee history in `history.sqlite`.
 - Branch / commit: `m3/service-outbox`.
 - State left in: Containerfile NOT built yet (needs the VM). `Pipeline.audit_append` is the hook for the M6 hash chain (takes a `Decision`).
 - Next step: Member 3 builds the image (`make z-build`), then `make z-up` and `make bench TAG=...`.

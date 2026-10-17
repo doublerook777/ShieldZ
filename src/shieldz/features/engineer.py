@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from shieldz.contracts import FEATURE_ORDER, FeatureInput, FeatureVector, TxType
-from shieldz.features.history import HistoryStore, bucket_prior_inbound
+from shieldz.features.history import History, bucket_prior_inbound
 
 # Columns engineer_frame expects (training supplies payee_prior_inbound as a chronological count)
 FRAME_INPUT_COLUMNS = (
@@ -41,7 +41,7 @@ def _compute(tx_type, amount, payer_balance, payee_balance, merchant, hour, prio
     return {name: out[name] for name in FEATURE_ORDER}
 
 
-def engineer(inp: FeatureInput, history: HistoryStore) -> FeatureVector:
+def engineer(inp: FeatureInput, history: History) -> FeatureVector:
     """Serving: one request. Reads the history store; the caller records the payment after."""
     unknown = np.nan if inp.payee_balance_before is None else inp.payee_balance_before
     cols = _compute(
