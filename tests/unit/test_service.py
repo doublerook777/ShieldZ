@@ -299,3 +299,23 @@ def test_audit_failure_does_not_fail_the_decision(env):
 
     pipeline.audit_append = broken
     assert client.post("/v1/score", json=payment()).status_code == 200
+
+
+def test_demo_scenarios_get_their_expected_decisions(env):
+    """The three scripted stories (Member 4) must come out right on the stub, too: A BLOCK, B ALLOW,
+    C REVIEW. The real model has to pass the same check on the VM (M2 thresholds)."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    path = Path(__file__).parents[2] / "scripts" / "demo_scenarios.py"
+    spec = importlib.util.spec_from_file_location("demo_scenarios", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["demo_scenarios"] = module  # dataclasses look their module up here
+    spec.loader.exec_module(module)
+
+    client, *_ = env
+    for sc in module.SCENARIOS.values():
+        body = client.post("/v1/score", json=sc.payment).json()
+        assert body["decision"] == sc.expected_decision.value, sc.id
+        assert body["risk_level"] == sc.expected_risk.value, sc.id
