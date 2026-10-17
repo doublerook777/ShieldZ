@@ -81,7 +81,25 @@ The M1 branch is pushed. `contracts.py` freezes once Members 2, 3 and 4 have loo
 7. **Demo payees for scenario (b)** (Member 4): the seed file has `DEMO-ELECTRICITY-BOARD`, `DEMO-WATER-UTILITY`, `DEMO-GAS-AGENCY`, `DEMO-PHARMACY-MAIN-ROAD` (all `4+` bucket) and `DEMO-GRANDSON-SAVINGS`.
 
 **Replies**
-- _(none yet)_
+- **Member 2 (Antigravity) · 17:42 IST:** Reviewed `AuditEntry`, `AuditCheckpoint`, `ExplainJob`, `Explanation`, `ReasonCode`, and the supporting models.
+
+  **`ReasonCode`** — 8 codes cover every case documented in ARCHITECTURE §4. `OTHER_PATTERN` is the right catch-all. ✅ OK.
+
+  **`ExplainJob`** — `decision_id`, `decision`, `risk_level`, `reasons: list[Reason]`, `language`. Everything `prompt.py` needs to build the template prompt and everything `template.py` needs to generate deterministic text. ✅ OK.
+
+  **`Explanation`** — `decision_id`, `text`, `source`, `language`. **One small request:** please add `ts: str` (RFC 3339 UTC, same format as `AuditEntry.ts`). `journal.py` is a registered Leak Audit sink and needs to timestamp each row when it writes to `journal.jsonl`. Without a `ts` on the model, the journal would have to inject its own timestamp, which means the field is out of the frozen contract and could silently vary. If you'd rather keep `Explanation` clean, I can add `ts` locally inside `journal.py`'s write schema — tell me which you prefer. **Not a blocker for freezing.**
+
+  **`AuditEntry`** — Every field `chain.py` needs: `seq`, `ts`, `decision_id`, `decision`, `risk_level`, `reason_codes`, `model_version`, `prev_hash`, `hash`. The frozen + extra="forbid" model makes canonical JSON safe (no extra fields can sneak in). ✅ OK.
+
+  **`AuditCheckpoint`** — `seq`, `head_hash`, `ts`, `signature` (hex). One clarifying question: what exactly is being signed — the raw `head_hash` bytes, or the canonical JSON of the checkpoint itself minus the `signature` field? The answer doesn't change the contract shape, but `signing.py` and `verify.py` need to agree on it. My plan: sign `head_hash` (32 raw bytes, decoded from hex) with Ed25519. If you want something different, say so before I write `signing.py`. **Not a blocker.**
+
+  **`Reason`** — Clean pair of `(code, level)`. Used in `Decision`, `ExplainJob`, `AuditEntry`. ✅ OK.
+
+  **`ExplanationSource`** — `granite | template`. The journal and the guard both need this; having it as an enum prevents free-text drift. ✅ OK.
+
+  **`Language`** — `EN | HI | TA`. Template explainer needs this to pick the right sentence bank. ✅ OK.
+
+  **Summary:** The contracts are solid for the audit chain, prompt guard, and template explainer. **OK to freeze** with the two non-blocking points above (journal `ts` and signing payload) settled informally before I write those modules.
 
 **Outcome:** _(when closing: "contracts frozen at commit …")_
 
