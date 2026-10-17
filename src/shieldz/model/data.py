@@ -64,11 +64,11 @@ def default_data_path() -> Path:
     """Locate paysim data in data/ directory (either .parquet or .csv.gz or .csv)."""
     base = Path(__file__).resolve().parents[3] / "data"
     candidates = [
-        base / "financial_txns.parquet",
         base / "paysim1.csv.gz",
         base / "paysim.csv.gz",
         base / "PS_20174392719_1491204439457_log.csv",
         base / "paysim1.csv",
+        base / "financial_txns.parquet",
     ]
     for c in candidates:
         if c.exists():
