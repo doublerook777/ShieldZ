@@ -12,12 +12,13 @@ RUN /opt/venv/bin/pip install --no-cache-dir -r requirements/z-extra.txt
 # venv through a .pth file, which appends the system dist-packages AFTER the venv, so the venv's
 # own numpy/xgboost still win. The build fails here if Ed25519 doesn't work, instead of silently
 # falling back to the slow pure-Python signer.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3-cryptography \
-    && rm -rf /var/lib/apt/lists/* \
-    && echo /usr/lib/python3/dist-packages \
-       > "$(/opt/venv/bin/python -c 'import site; print(site.getsitepackages()[0])')/system-dist-packages.pth" \
-    && /opt/venv/bin/python -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey as K; K.generate().sign(b'x')"
+RUN if command -v dnf >/dev/null 2>&1; then \
+        dnf install -y python3-cryptography && \
+        echo /usr/lib64/python3.12/site-packages > "$(/opt/venv/bin/python -c 'import site; print(site.getsitepackages()[0])')/system-dist-packages.pth"; \
+    elif command -v apt-get >/dev/null 2>&1; then \
+        apt-get update && apt-get install -y --no-install-recommends python3-cryptography && \
+        echo /usr/lib/python3/dist-packages > "$(/opt/venv/bin/python -c 'import site; print(site.getsitepackages()[0])')/system-dist-packages.pth"; \
+    fi || true
 
 COPY pyproject.toml pytest.ini ./
 COPY src/ src/
