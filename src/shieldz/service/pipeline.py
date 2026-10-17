@@ -35,7 +35,7 @@ from shieldz.outbox.queue import Outbox
 from shieldz.privacy.redact_log import log_event
 from shieldz.privacy.strip import strip
 from shieldz.privacy.tokenize import Tokenizer, default_tokenizer
-from shieldz.service.decide import Thresholds, decide, load_thresholds
+from shieldz.service.decide import Thresholds, apply_policy, decide, load_thresholds
 from shieldz.service.stub_engine import StubEngine
 
 MAX_REASONS = 3
@@ -112,8 +112,11 @@ class Pipeline:
         features = engineer(inp, self.history)
 
         kind, risk = decide(self.engine.score(features), self.thresholds)
+        kind, risk, by_policy = apply_policy(kind, features, self.thresholds)
         reasons: list[Reason] = []
-        if kind != DecisionKind.ALLOW:
+        if by_policy:  # the model saw nothing wrong, so its reasons would be empty or generic
+            reasons = [Reason(code=ReasonCode.NEW_RECIPIENT, level=Level.MEDIUM)]
+        elif kind != DecisionKind.ALLOW:
             pairs = self.engine.reasons(features)[:MAX_REASONS] or [
                 (ReasonCode.OTHER_PATTERN, Level.LOW)
             ]

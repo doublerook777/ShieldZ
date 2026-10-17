@@ -319,3 +319,84 @@ def test_demo_scenarios_get_their_expected_decisions(env):
         body = client.post("/v1/score", json=sc.payment).json()
         assert body["decision"] == sc.expected_decision.value, sc.id
         assert body["risk_level"] == sc.expected_risk.value, sc.id
+
+
+class LowScoreEngine(StubEngine):
+    """Like the trained model on an ordinary payment: scores about 0.03 whatever the payee."""
+
+    name, version = "low", "low-0"
+
+    def score(self, features):
+        return 0.03
+
+    def reasons(self, features):
+        return []
+
+
+@pytest.fixture
+def low_env(tmp_path):
+    setup_logging(tmp_path / "logs" / "app.jsonl", io.StringIO())
+    tokenizer = Tokenizer(PEPPER)
+    pipeline = Pipeline(
+        engine=LowScoreEngine(),
+        thresholds=DEFAULT_THRESHOLDS,
+        tokenizer=tokenizer,
+        history=build_history(tokenizer),
+        outbox=Outbox(tmp_path / "outbox.sqlite"),
+    )
+    with TestClient(create_app(pipeline)) as client:
+        yield client, pipeline
+    logging.getLogger("shieldz").handlers.clear()
+
+
+def test_policy_holds_a_large_first_payment_to_an_unknown_payee(low_env):
+    client, pipeline = low_env
+    body = payment(tx_type="PAYMENT", amount=8500.0, payer_balance_before=490000.0)
+    first = client.post("/v1/score", json=body).json()
+    assert first["decision"] == "REVIEW" and first["risk_level"] == "MEDIUM"
+    assert [r["code"] for r in first["reason_codes"]] == ["NEW_RECIPIENT"]
+    assert pipeline.outbox.count("pending") == 1  # the explainer gets the job
+    # the payee is known after one payment: the same request is now an ALLOW
+    assert client.post("/v1/score", json=body).json()["decision"] == "ALLOW"
+
+
+def test_policy_leaves_known_payees_and_small_amounts_alone(low_env):
+    client, _ = low_env
+    utility = payment(
+        tx_type="PAYMENT", payee_account="DEMO-ELECTRICITY-BOARD", amount=8500.0,
+        payer_balance_before=490000.0,
+    )  # fmt: skip
+    assert client.post("/v1/score", json=utility).json()["decision"] == "ALLOW"
+    small = payment(tx_type="PAYMENT", payee_account="NEW-SMALL-1", amount=900.0,
+                    payer_balance_before=490000.0)  # fmt: skip
+    assert client.post("/v1/score", json=small).json()["decision"] == "ALLOW"
+
+
+def test_policy_can_be_switched_off_and_never_lowers_a_decision(tmp_path):
+    from dataclasses import replace
+
+    from shieldz.contracts import DecisionKind
+    from shieldz.service.decide import apply_policy
+
+    off = replace(DEFAULT_THRESHOLDS, review_new_payee_min=None)
+    f = {
+        "type_TRANSFER": 0, "type_CASH_OUT": 0, "type_PAYMENT": 1, "type_CASH_IN": 0,
+        "type_DEBIT": 0, "log_amount": 12.0, "amount_to_balance": 0.01, "drains_account": 0,
+        "payee_is_merchant": 1, "payee_prior_inbound": 0, "payee_balance_before_zero": 0,
+        "hour_of_day": 11,
+    }  # fmt: skip
+    from shieldz.contracts import FeatureVector
+
+    vec = FeatureVector(**f)
+    assert apply_policy(DecisionKind.ALLOW, vec, DEFAULT_THRESHOLDS)[0] == DecisionKind.REVIEW
+    assert apply_policy(DecisionKind.ALLOW, vec, off)[0] == DecisionKind.ALLOW
+    assert apply_policy(DecisionKind.BLOCK, vec, DEFAULT_THRESHOLDS)[0] == DecisionKind.BLOCK
+    assert apply_policy(DecisionKind.REVIEW, vec, DEFAULT_THRESHOLDS)[2] is False
+
+
+def test_thresholds_file_can_disable_the_policy(tmp_path):
+    f = tmp_path / "thresholds.json"
+    f.write_text(json.dumps({"t_review": 0.7, "t_block": 0.75, "review_new_payee_min": None}))
+    assert load_thresholds(f).review_new_payee_min is None
+    f.write_text(json.dumps({"t_review": 0.7, "t_block": 0.75}))
+    assert load_thresholds(f).review_new_payee_min == 5000.0
