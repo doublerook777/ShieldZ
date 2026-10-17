@@ -43,10 +43,15 @@ class Generator(Protocol):
         ...
 
 
+# Bump when post-processing changes what is stored for the same prompt (compose, guards), so text
+# cached by older code is never served.
+CACHE_VERSION = "2"
+
+
 def cache_key(generator: Generator, prompt: str) -> str:
     """Same model settings and same validated prompt always give the same text (temperature 0)."""
     tag = getattr(generator, "cache_tag", generator.name)
-    return hashlib.sha256(f"{tag}\n{prompt}".encode()).hexdigest()
+    return hashlib.sha256(f"{CACHE_VERSION}\n{tag}\n{prompt}".encode()).hexdigest()
 
 
 class Worker:
@@ -79,12 +84,16 @@ class Worker:
             if ok:
                 key = cache_key(self.generator, prompt)
                 text = self.outbox.get_cached(key) or ""
+                if text and not (validate_output(text)[0] and validate_quality(text)[0]):
+                    self.outbox.drop_cached(key)  # stale or poisoned: regenerate instead of looping
+                    text = ""
                 cached = bool(text)
                 if not cached:
-                    text = self.generator.generate(prompt).strip()
-                    composed = compose_explanation(text, FOOTER_EN)
+                    composed = compose_explanation(
+                        self.generator.generate(prompt).strip(), FOOTER_EN
+                    )
                     text = composed or ""
-                ok, why = validate_output(text)  # cached text is guarded again on the way out
+                ok, why = validate_output(text)
                 if ok:
                     ok, why = validate_quality(text)
                 if ok and not cached:

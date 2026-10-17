@@ -190,11 +190,14 @@ def test_rejected_output_is_never_cached_and_cached_text_is_guarded_again(box, t
     from shieldz.explainer.worker import cache_key
 
     llm = FakeLLM()
-    box.put_cached(cache_key(llm, build_prompt(job(2))), "Call 9876543210123 now")  # poisoned
+    key = cache_key(llm, build_prompt(job(2)))
+    box.put_cached(key, "Call 9876543210123 now")  # poisoned (or written by older code)
     box.enqueue(job(2))
     worker(box, tmp_path, llm).run_once()
-    assert box.get_explanation(job(2).decision_id).source == ExplanationSource.TEMPLATE
-    assert llm.prompts == []  # it did not regenerate; it fell back, and the guard caught it
+    # the guard caught it, the entry was dropped and regenerated, and the fresh text was cached
+    assert len(llm.prompts) == 1
+    assert box.get_explanation(job(2).decision_id).text == FINAL
+    assert box.get_cached(key) == FINAL
 
 
 def test_trim_to_sentence():

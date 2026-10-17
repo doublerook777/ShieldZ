@@ -39,11 +39,11 @@ PROMPT_HEAD: str = (
     "Rewrite each bank warning in short, simple, calm words for an elderly customer.\n\n"
 )
 PROMPT_EXAMPLES: str = (
-    "Warning: The requested amount is unusually large compared to your normal activity. "
-    "This payment is occurring at an unusual hour. Please pause and verify this transfer by "
-    "calling your bank on the official number on your card before proceeding.\n"
-    "Simple words: This is a very big payment, and it is late at night, which is not like you. "
-    "Please stop for a moment and call your bank on the number on your card.\n\n"
+    "Warning: The receiving account is new and has not received transfers before. "
+    "Please pause and verify this transfer by calling your bank on the official number on your "
+    "card before proceeding.\n"
+    "Simple words: The person you are paying has a brand new account that nobody has paid "
+    "before. Please stop for a moment and call your bank on the number on your card.\n\n"
     "Warning: This payment uses most of the funds in your account. This transfer method is "
     "commonly targeted by urgent payment scams. Please pause and verify this transfer by calling "
     "your bank on the official number on your card before proceeding.\n"

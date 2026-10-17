@@ -143,6 +143,9 @@ class Outbox:
             (key, text, now_utc()),
         )
 
+    def drop_cached(self, key: str) -> None:
+        self._conn().execute("DELETE FROM llm_cache WHERE key = ?", (key,))
+
     def clear_cache(self) -> int:
         return self._conn().execute("DELETE FROM llm_cache").rowcount
 
