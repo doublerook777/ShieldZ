@@ -3,6 +3,8 @@
 > **Document purpose:** Critical technical analysis of the ShieldZ project architecture, implementation plan, security/privacy claims, machine learning pipeline, and LinuxONE (s390x) deployment.
 > **Date:** October 17, 2026 · IBM Z Datathon 2026 (Theme 2: AI Secured — Innovation Without Exposure)
 > **Target Audience:** Team Marauders (Members 1, 2, 3, 4) and collaborating AI agents.
+>
+> **Status (17:00 IST):** every point below has been reviewed. The fixes are in the docs as of commit `8e58a4d`. See [§8 Resolution log](#8-resolution-log-what-was-fixed-and-where) at the end of this file, and ADR D16 in `docs/DECISIONS.md`.
 
 ---
 
@@ -185,3 +187,38 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 ---
 
 *Report compiled for Team Marauders. Let's build ShieldZ!*
+
+---
+
+## 8. Resolution log: what was fixed and where
+
+*Added 2026-10-17 ~17:00 IST (Claude Code). Applied in commit `8e58a4d`. The same verdicts are in `docs/DECISIONS.md` → ADR D16.*
+
+| § | Finding | Verdict | Fix | Where |
+|---|---|---|---|---|
+| 2.1 (1) | "No digits" guard can't catch names or other letter-only PII | ✅ Valid | The input guard now **re-renders the template from the job's enum values and requires a byte-for-byte match**, so no free text of any kind can enter the prompt. "No digits" stays as an extra check on the variable parts. A test that injects a name (letters only) was added to the M5 gate. | `docs/IMPLEMENTATION_PLAN.md` M5 task 2 + gate; `docs/ARCHITECTURE.md` §2 diagram, invariant I2; `monkey_brain.md` §6 |
+| 2.1 (2) | Output guard rejects every digit, so Granite would silently always fall back to the template | ✅ Valid | The output guard now rejects only **PII-shaped** content: 4+ digit runs, money amounts (₹/Rs/INR + number), phone-like patterns, URLs, `@`. "24 hours" and "3 steps" are allowed. Every explanation records `source = granite | template`, the UI shows it, and the new M5 gate needs **≥ 80% `source = granite`** on 50 sample jobs. | Plan M5 task 2 + gate; `monkey_brain.md` §6 |
+| 2.1 (3) | Prompt template must avoid digits | ✅ Noted | Covered by the re-render rule: the fixed template is ours, and the digit check applies only to the variable parts. | Plan M5 task 2; ARCHITECTURE I2 |
+| 2.2 | 6-digit partial rule gives near-certain false positives (timestamps, hashes) | ✅ Valid | A `PARTIAL` is now a **standalone run of 7+ digits** (bounded by non-digits, after joining digit groups split by spaces/dashes) inside a canary number. Digits inside longer runs don't count. New **negative control**: 1,000 decoy canaries are generated but never sent, and a valid run needs **0 decoy hits**. | Plan M4 tasks 3, 5 + gate; `docs/GLOSSARY.md` (partial leak, negative control); `monkey_brain.md` §7 |
+| 2.3 (1) | TreeSHAP adds 10–25 ms | ⚠️ Overstated | TreeSHAP for one row over a few hundred depth-6 trees is typically around a millisecond, and the M2 gate already measures `predict + contribs` p99 ≤ 5 ms on the VM. Contributions run only for REVIEW/BLOCK. **Fallback added:** compute codes in the explainer worker from the numeric `FeatureVector` if the budget is missed. | Plan M2 task 4 |
+| 2.3 (2) | File lock contention on the audit chain | ⚠️ Partly | The API is one process, so appends use an **in-process lock**. The append is a hash plus a write (microseconds). M6 gate: ≤ 1 ms p99 overhead. | Plan M6 task 1 |
+| 2.3 (3) | Pure-Python Ed25519 in the request path breaks 50 ms | ✅ Valid | **Signing never runs in the request path**, for any backend. A background thread signs a checkpoint (chain head) every 100 entries or 1 s. Per-entry signing removed. | Plan M6 task 2, cut order; `docs/DECISIONS.md` D6; ARCHITECTURE §3 step 7 |
+| 2.4 | SQLite WAL across two containers on a bind mount | ⚠️ Mostly not an issue | Both containers share one host kernel and a local filesystem, where SQLite locking and WAL shared memory work (the known failures are on network filesystems). Same image, so the same UID owns the files. Added `busy_timeout=5000` and a gate: **5,000 jobs across the containers with 0 `database is locked` errors**. | Plan M3 task 3, M5 gate; DECISIONS D5 |
+| 2.5 | Empty history store marks every payee as new | ✅ Valid | The history store is **seeded at startup** (PaySim inbound counts + `src/shieldz/features/demo_seed.csv`) and **bucketed** (0 / 1–3 / 4+) so training and serving see the same scale. New tests: M1 cold-start test; M3 **clean-start bill payment → ALLOW**. | Plan M1 task 5 + gate, M3 gate; ARCHITECTURE §3 feature table |
+| 3.1 | PR-AUC ≥ 0.80 may be unreachable without leaky columns | ✅ Valid | 0.80 is now a **target**. Tuning is timeboxed to **45 min**. The **floor** is PR-AUC ≥ 0.50 **and** beating a simple rule baseline (`TRANSFER/CASH_OUT` with `amount_to_balance ≥ 0.99`). Exemptions are recorded in `progress.md`. | Plan M2 gate |
+| 3.2 | Tiny SHAP contributions still produce scary reason codes | ✅ Valid | A feature becomes a code only if its contribution is ≥ `MIN_CONTRIB` (start at +0.1 log-odds, tuned). Otherwise the code is `OTHER_PATTERN`. SHAP picks *which* codes; the buckets give the *level*. | Plan M2 task 4; ARCHITECTURE §4 |
+| 4.1 | Use Ubuntu's prebuilt `python3-cryptography` instead of compiling | ✅ Valid | apt is now **option 1** in the signing spike: native on the Ubuntu host, and inside the image via a `.pth` file if the base is Debian/Ubuntu. Then `pip` + Rust, then our own RFC 8032. Possible CPACF `KDSA` acceleration noted, to be claimed only if verified. | Plan M0 task 4; DECISIONS D6 + dependency table |
+| 4.2 | Hardcoded `--cpuset-cpus 2-3` fails on 2-vCPU VMs | ✅ Valid | The core split is **computed from `nproc`** (≥4 → `0-1` / `2-(n-1)`, 3 → `0` / `1-2`, 2 → `0` / `1`, 1 → no pinning, explainer `--cpus 0.5`). | `docs/LINUXONE_RUNBOOK.md` §5; ARCHITECTURE §8; plan risks table |
+| 4.3 | RAM / disk pressure | ⚠️ Already covered | M0 already recorded `free -h` / `df -h`, and the loader uses dtypes. Added an M0 gate item: **≥ 10 GB free before any image build**. | Plan M0 gate |
+| 5.1 | `.gitignore` didn't exclude data, keys, artifacts | ✅ Valid | Fixed by the reviewer in `c099122`. Then added `*.sqlite`, `*.sqlite-*`, `.ruff_cache/`, `.ipynb_checkpoints/`, `*.egg-info/`, and an exception `!results/audit_pubkey.pem` so the public key can still be committed. | `.gitignore` |
+| 5.2 | Some laptops lack uv / Python 3.12 / Docker | ✅ Valid | `AGENTS.md` now shows the uv install one-liner (uv downloads Python 3.12 itself, no system 3.12 needed) and states that **Docker isn't needed on laptops**. | `AGENTS.md` commands |
+| 6.1 | Handoff ceremony costs hours | ⚠️ Partly | Lightened: `progress.md` / `explanation.md`-only commits go **straight to `main`**, logs can be 3–6 lines, and `explanation.md` is needed **only at role/baton handoffs**. | `AGENTS.md` "Before you stop"; `docs/GIT_WORKFLOW.md` §6 |
+| 6.2 | Main-build baton is a bottleneck | ⚠️ Partly | The suggested parallel split was already the plan (§3). The real overload was M2 + M3 on one person, so **`model/` moved to Member 3**, with an `Engine` protocol in the M1 contracts and a **stub engine** so M3 starts without waiting for M2. | Plan §3 roles, M1 task 1, M2 heading, M3 task 0; `AGENTS.md`; DECISIONS D16 |
+| 1 | Behind schedule, no code yet | ✅ True | No doc change. M0 starts now; per-member first tasks are in `progress.md` → Next action. | `progress.md` |
+
+**New risks added to the plan** (`docs/IMPLEMENTATION_PLAN.md` §7):
+- scanner false positives;
+- Granite always falling back to the template;
+- cold-start history;
+- fewer than 4 vCPUs.
+
