@@ -312,10 +312,10 @@
     <div class="system-status">
       <div class="status-badge">
         <span class="status-dot"></span>
-        <span id="platform-text">LinuxONE s390x · Telum AI</span>
+        <span id="platform-text">LinuxONE s390x</span>
       </div>
       <div class="status-badge">
-        <span>Engine: <strong id="engine-text" style="color:#fff;">XGBoost / Snap ML</strong></span>
+        <span>Engine: <strong id="engine-text" style="color:#fff;">XGBoost</strong></span>
       </div>
       <div class="status-badge">
         <span>Zero-Exposure: <strong style="color:var(--success);">Verified (0 Leaks)</strong></span>
@@ -497,7 +497,7 @@
           <!-- Family SMS Guardian Alert -->
           <div class="family-alert-box" style="margin-top: 14px;" id="familyAlertBox">
             <div class="family-alert-header">
-              <span>📱 Dispatched Family Guardian Alert</span>
+              <span>📱 Family Guardian Alert (preview of the message; nothing is sent)</span>
             </div>
             <div class="family-alert-body" id="familyAlertText">
               [No alert triggered]
@@ -556,8 +556,8 @@
             The synchronous decision path (FastAPI + XGBoost) and asynchronous explainer (IBM Granite + llama.cpp) run in dedicated Docker containers pinned to separate CPU cores via <code>--cpuset-cpus</code>.
           </p>
           <div style="background:#0b0f19; padding:12px; border-radius:4px; font-family:monospace; font-size:0.8rem; color:#38bdf8; line-height:1.6;">
-            • Cores 0-1: shieldz-api (Single-row inference p99 &lt; 50ms, never interrupted)<br>
-            • Cores 2-3: shieldz-explainer (Granite inference with IBM Telum AI / NNPA acceleration)<br>
+            • Core 0: shieldz-api (decision p99 6.9 ms idle, 11.5 ms while Granite generates; limit 50 ms)<br>
+            • Cores 1-2: shieldz-explainer (IBM Granite 350M through llama.cpp, on the CPU)<br>
             • IPC: Shared local volume (artifacts/runtime/outbox.sqlite in WAL mode)
           </div>
         </div>

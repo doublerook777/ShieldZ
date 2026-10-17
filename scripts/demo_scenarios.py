@@ -327,7 +327,7 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
                     "(worker still generating or not running)."
                 )
 
-            print(f'  📱 Family Alert Dispatched: "{sc.family_alert_preview}"')
+            print(f'  📱 Family alert (preview, nothing is sent): "{sc.family_alert_preview}"')
         print()
 
     print("━" * 68)
