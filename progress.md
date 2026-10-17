@@ -1,6 +1,7 @@
 # ShieldZ — Progress
 
 > **Read this first** if you are picking up work (human or AI agent). Then read the latest entries in [explanation.md](explanation.md).
+> Questions or critiques for others go in [conversation.md](conversation.md).
 > **Update this before you stop**, even mid-task (protocol in [AGENTS.md](AGENTS.md)). `main` must always have a current copy.
 
 ---
@@ -105,8 +106,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ## Open questions
 
-- [ ] Is the GitHub repo public, or does the VM need a deploy key?
-- [ ] Should `CLAUDE.md` stay gitignored? (`AGENTS.md` carries the shared agent rules either way.)
+Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: **C-002** (repo public or deploy key?), **C-003** (should `CLAUDE.md` stay gitignored?).
 
 ---
 

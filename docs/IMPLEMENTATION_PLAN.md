@@ -15,6 +15,7 @@ Related docs:
 | [DECISIONS.md](DECISIONS.md) | Why we chose each tool, and what we changed from the original idea |
 | [../progress.md](../progress.md) | Live status: the first thing to read when picking up work |
 | [../explanation.md](../explanation.md) | Plain-language notes from each member/agent session |
+| [../conversation.md](../conversation.md) | Team conversation board: critiques, questions, proposals and blockers, as numbered threads |
 | [../monkey_brain.md](../monkey_brain.md) | The whole project explained simply, with diagrams (good for onboarding and the video script) |
 
 ---
@@ -83,6 +84,7 @@ Rules:
 - The **main-build baton has exactly one holder at a time**, named in the `progress.md` status snapshot. Only the holder edits main-build files.
 - Need a change in a file you don't own? Ask its owner, or open a small PR and tag them. Shared files (`Makefile`, `pyproject.toml`, `requirements/`) change only through the main-build holder.
 - Any member can run a Z gate by following [LINUXONE_RUNBOOK.md](LINUXONE_RUNBOOK.md); Member 3 is the default.
+- Questions, critiques and proposals for other members go in [conversation.md](../conversation.md) as numbered threads. Anything urgent also goes to the team chat.
 - At **feature freeze (05:30)** everyone switches to M8.
 
 ### Handoff (baton or any role): tokens running out, sleep or away

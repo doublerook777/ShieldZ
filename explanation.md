@@ -4,7 +4,7 @@
 
 **Who writes this:** every member or AI agent, **before they stop working or run out of context**. Add a new section at the top (newest first). Don't edit other people's sections, except to fix a factual error (and note that you did).
 
-How it differs from [progress.md](progress.md): `progress.md` is the status board (checkboxes, numbers, next action). This file is the *story*, in simple words.
+How it differs from [progress.md](progress.md) and [conversation.md](conversation.md): `progress.md` is the status board (checkboxes, numbers, next action). `conversation.md` is where you ask questions or raise critiques that need an answer. This file is the *story* of what you did, in simple words.
 
 ---
 

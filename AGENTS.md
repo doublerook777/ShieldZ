@@ -5,15 +5,17 @@ For AI coding agents (Claude Code, Gemini, Copilot, …) **and** the humans driv
 ## Start of every session
 1. Read `progress.md` (status snapshot + newest log entries).
 2. Read the newest 1–2 entries in `explanation.md`.
-3. Find your milestone in `docs/IMPLEMENTATION_PLAN.md` and work toward **its gate checklist**.
-4. `git switch main && git pull --rebase`, then branch per `docs/GIT_WORKFLOW.md` (`m<N>/<area>-<topic>`).
-5. Check **which role you are** (and whether you hold the main-build baton) in the `progress.md` snapshot. Edit only the files your role owns (plan §3).
+3. Check the index in `conversation.md` for 🟡 open / 🔵 answered threads addressed to your role or member, and answer what you can.
+4. Find your milestone in `docs/IMPLEMENTATION_PLAN.md` and work toward **its gate checklist**.
+5. `git switch main && git pull --rebase`, then branch per `docs/GIT_WORKFLOW.md` (`m<N>/<area>-<topic>`).
+6. Check **which role you are** (and whether you hold the main-build baton) in the `progress.md` snapshot. Edit only the files your role owns (plan §3).
 
 ## Before you stop (or when context is running low): mandatory
 1. Commit everything on your branch (a `wip(<area>): …` commit is fine) and push.
 2. Update the **status snapshot** in `progress.md` and add a short **log entry** (3–6 lines is fine).
 3. **Only when handing a role or the baton to someone else** (shift change, tokens out, leaving): also add a plain-language section at the top of `explanation.md`. Routine pushes don't need one.
-4. Commit `progress.md` / `explanation.md`-only changes **directly to `main`** (`git pull --rebase` first). No branch or PR is needed for notes.
+4. Reply to any `conversation.md` thread you were working on. Open a new thread for any question you couldn't settle.
+5. Commit `progress.md` / `explanation.md` / `conversation.md`-only changes **directly to `main`** (`git pull --rebase` first). No branch or PR is needed for notes.
 If you're an agent and your context is nearly full, do this **now**, before attempting more work.
 
 ## Project state
@@ -46,6 +48,7 @@ make z-up / make z-down          # run / stop the api + explainer Docker contain
 - Never commit `data/`, `artifacts/`, keys, `*.gguf`. Do commit `results/`.
 - `contracts.py` is frozen after the M1 gate. Changing it needs a PR acknowledged by every member.
 - PRs touching `contracts.py`, `privacy/`, `explainer/guard.py` or `leak_audit/` always need a human reviewer.
+- If a question is the team's call (scope, trade-offs, priorities) rather than something the code or docs answer, **don't guess**: open a thread in `conversation.md` (template in the file) and keep working on something else.
 
 ## Team model (4 members, hybrid; details in plan §3)
 | Role | Default | Owns |
@@ -65,5 +68,6 @@ The VM is **Ubuntu 24.04 + Docker** (ADR D14). Use `docker`, not `podman`.
 | Why a tool was chosen | `docs/DECISIONS.md` |
 | A word you don't know | `docs/GLOSSARY.md` |
 | The whole project in simple terms, with pictures | `monkey_brain.md` |
+| Critiques, questions, proposals, blockers between members | `conversation.md` |
 | Branch / commit / PR rules | `docs/GIT_WORKFLOW.md` |
 | VM, Jupyter, Docker, tunnels | `docs/LINUXONE_RUNBOOK.md` |

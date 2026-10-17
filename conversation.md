@@ -1,4 +1,90 @@
-# ShieldZ — Deep Project Analysis, Bugs, Shortcomings & Critique
+# ShieldZ — Team Conversation Board
+
+The place where members and their AI agents **raise critiques, ask questions, propose changes and flag blockers** to each other, asynchronously, across shifts.
+
+| File | Use it for |
+|---|---|
+| `progress.md` | Status: what's done, what's next, who holds what |
+| `explanation.md` | The story of a finished session, in simple words (at handoffs) |
+| **`conversation.md`** | **Anything that needs an answer or a decision from someone else** |
+| `docs/DECISIONS.md` | The final record of decisions. A thread that changes a decision must end up there |
+
+---
+
+## How to use this board
+
+1. **One thread per topic.** Take the next free ID from the index (`C-004`, `C-005`, …), add a row to the index and put the thread **at the top** of "Threads" (newest first).
+2. **Reply inside the thread**, at the bottom of its *Replies* list (oldest first within a thread). Start each reply with `**<Member N or agent for Member N> · HH:MM IST:**`.
+3. **Never rewrite someone else's text.** To retract your own, use ~~strikethrough~~ and add a reply.
+4. **Status** (keep the index and the thread in sync):
+   - 🟡 open: needs an answer
+   - 🔵 answered: an answer was given, the action is pending
+   - ✅ resolved: done
+   - ⛔ won't fix: closed with a reason
+5. **Closing a thread:** fill in its **Outcome** with what was decided and *where it was applied* (ADR number, plan section, commit). This board is a discussion, not the source of truth. The docs are.
+6. **Blockers:** also put them in the `Blockers` row of the `progress.md` snapshot, and tell the team chat if it's urgent.
+7. **Good critiques are specific:** name the file/section, give a concrete failure scenario, propose a fix.
+8. **Committing:** this file counts as notes. Commit straight to `main` (`git pull --rebase` first), with a message like `docs(conversation): C-004 open — …`. On a merge conflict, keep both sides.
+9. **AI agents:**
+   - At session start, read every 🟡/🔵 thread whose *For* field matches your role or member.
+   - If you hit a question that is the *team's* call (not something you can settle from the code or docs), open a thread and keep working on something else instead of guessing.
+   - Before you stop, reply to any thread you were working on.
+
+### Thread template
+
+```markdown
+## C-00N · <short title>
+**Type:** critique | question | proposal | blocker | FYI · **Status:** 🟡 open · **Opened by:** <who>, <YYYY-MM-DD HH:MM IST> · **For:** <Member N / role / everyone> · **Related:** <files, plan §, ADR>
+
+<the point, with a concrete scenario and a suggested answer or fix if you have one>
+
+**Replies**
+- **<who> · HH:MM IST:** …
+
+**Outcome:** _(when closing: decision + where it was applied)_
+```
+
+---
+
+## Index
+
+| ID | Title | Type | For | Status |
+|---|---|---|---|---|
+| [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | 🟡 open |
+| [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | 🟡 open |
+| [C-001](#c-001--deep-project-analysis-bugs-shortcomings--critique) | Deep project analysis, bugs, shortcomings & critique | critique | everyone | ✅ resolved |
+
+---
+
+# Threads
+
+## C-003 · Should `CLAUDE.md` stay gitignored?
+**Type:** question · **Status:** 🟡 open · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead · **Related:** `.gitignore`, `AGENTS.md`
+
+`CLAUDE.md` and `reference/` are in `.gitignore`, so they never reach teammates' clones. Nothing breaks: `AGENTS.md` (committed) holds every shared agent rule, and the local `CLAUDE.md` just imports it. But members using Claude Code won't get the import unless they create their own `CLAUDE.md` containing `@AGENTS.md`.
+Suggested answer: commit a `CLAUDE.md` that only contains `@AGENTS.md`, **or** keep it ignored and tell Claude Code users to create that one-liner.
+
+**Replies**
+
+**Outcome:** _(open)_
+
+---
+
+## C-002 · Is the GitHub repo public, or does the VM need a deploy key?
+**Type:** question · **Status:** 🟡 open · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead, Member 3 · **Related:** `docs/LINUXONE_RUNBOOK.md` §2
+
+The VM clones the repo into `~/shared/ShieldZ`. A public repo clones over HTTPS with no setup. A private repo needs a read-only deploy key on the VM (steps in runbook §2). The submission needs the repo link to be accessible to judges by 10:00 anyway.
+
+**Replies**
+
+**Outcome:** _(open)_
+
+---
+
+## C-001 · Deep project analysis, bugs, shortcomings & critique
+**Type:** critique · **Status:** ✅ resolved · **Opened by:** Lokesh (AI agent, Antigravity), 2026-10-17 16:30 IST · **For:** everyone · **Related:** all docs; ADR D16
+
+**Outcome:** every finding was reviewed. Fixes are in commit `8e58a4d`, and the verdicts are in ADR D16 and the resolution log below (§8).
 
 > **Document purpose:** Critical technical analysis of the ShieldZ project architecture, implementation plan, security/privacy claims, machine learning pipeline, and LinuxONE (s390x) deployment.
 > **Date:** October 17, 2026 · IBM Z Datathon 2026 (Theme 2: AI Secured — Innovation Without Exposure)
@@ -8,22 +94,22 @@
 
 ---
 
-## 1. Executive Summary & Project Status
+### 1. Executive Summary & Project Status
 
 ShieldZ is an ambitious, well-conceptualized project combining real-time fraud scoring (XGBoost), privacy-preserving explainability (IBM Granite LLM via llama.cpp on LinuxONE), tamper-evident audit logging (hash chaining + Ed25519), and a headline Canary Leak Audit. The planning documents (`docs/ARCHITECTURE.md`, `IMPLEMENTATION_PLAN.md`, `DECISIONS.md`, `monkey_brain.md`) are exceptionally thorough and well-written.
 
 However, a deep engineering audit of the codebase, planning assumptions, and runtime environment reveals **critical vulnerabilities, performance bottlenecks, mathematical edge cases in the leak scanner, and operational roadblocks** that could jeopardize the project during the 18-hour build window.
 
-### Current Reality Check
+#### Current Reality Check
 - **Clock Time:** Hackathon start was 16:00 IST; current time is past 16:25 IST. Over 25 minutes of the 18-hour sprint have elapsed.
 - **Codebase State:** **Zero application code, tests, or scaffolding exist.** No `Makefile`, no `pyproject.toml`, no `requirements/*.txt`, no `Containerfile`, and no `src/` directory. Only documentation has been created.
 - **Milestone Status:** Milestone M0 (Platform Spikes & Scaffolding) was scheduled for 16:00–17:30 IST and is currently marked "not started".
 
 ---
 
-## 2. Critical Bugs & Architectural Shortcomings
+### 2. Critical Bugs & Architectural Shortcomings
 
-### 2.1. The "No Digits" Prompt & Output Guard False Sense of Security
+#### 2.1. The "No Digits" Prompt & Output Guard False Sense of Security
 * **Reference:** `docs/ARCHITECTURE.md` §4, §6 (Invariant I2); `docs/IMPLEMENTATION_PLAN.md` M5; `explainer/guard.py`.
 * **The Claim:** Invariant I2 states: *"The LLM prompt is built only from the template and enum values; no digits."* The prompt guard asserts: *"Does it contain ANY digit (0-9)? must be none!"* And the output guard states: *"Falls back to the template if the LLM output contains digits, URLs or @"*.
 * **Critical Flaws:**
@@ -31,7 +117,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   2. **The Granite Output Rejection Trap:** IBM Granite is a pre-trained LLM. In natural financial advice, LLMs routinely generate numbers: e.g., *"call your bank within 24 hours"*, *"follow these 3 steps"*, *"available 7 days a week"*, or *"step 1: pause"*. Because the output guard rejects any output containing digits `0-9` and falls back to `TemplateExplainer`, **Granite's generated outputs could be rejected 100% of the time in production**, silently masking the failure by always showing the hardcoded template. The team would effectively be showcasing static templates while claiming Granite is generating the text.
   3. **Brittle Prompt Templating:** The "no digits" rule breaks if prompt instructions contain digits (e.g., "write 2-3 sentences" had to be manually edited to "write two or three sentences"). Any versioning string like `v1` or metadata in prompt debugging will immediately trip the firewall.
 
-### 2.2. Mathematical Flaw in Canary Scanner: The Birthday Paradox / Pigeonhole Trap
+#### 2.2. Mathematical Flaw in Canary Scanner: The Birthday Paradox / Pigeonhole Trap
 * **Reference:** `docs/ARCHITECTURE.md` §7; `docs/IMPLEMENTATION_PLAN.md` M4; `leak_audit/scanner.py`.
 * **The Rule:** `scanner.py` specifies that *"Any 6 or more consecutive digits of a phone or account number counts as a PARTIAL leak."*
 * **Critical Flaw:**
@@ -43,7 +129,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   - **Consequence:** The Canary Leak Audit will generate **false positive `PARTIAL` leaks**, making it impossible to pass Gate M4 (`0 leaks, 0 partials`), even when zero PII was leaked.
 * **Fix Required:** The scanner must look for exact delimited patterns (e.g., regex `\b\d{10}\b`), or require structured token matches, rather than raw unanchored 6-digit substring scanning across unstructured binary/text files.
 
-### 2.3. The Synchronous Latency Budget vs. File-Locked Audit & TreeSHAP
+#### 2.3. The Synchronous Latency Budget vs. File-Locked Audit & TreeSHAP
 * **Reference:** `docs/ARCHITECTURE.md` §1, §3; `docs/IMPLEMENTATION_PLAN.md` M2, M3, M6.
 * **The Claim:** The decision path achieves `< 50 ms p99` end-to-end at concurrency $c=8$.
 * **The Bottlenecks:**
@@ -51,7 +137,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   2. **Audit Log Lock Contention:** `docs/IMPLEMENTATION_PLAN.md` M6 mandates an append-only `audit/chain.jsonl` with *"a single writer with a file lock"*. Under concurrency $c=8$, eight simultaneous requests will compete for the same OS file lock. Each request must acquire the lock, read the tail hash, compute canonical JSON, compute SHA-256, perform Ed25519 signing, and write. Serializing 8 concurrent threads through an exclusive file lock will introduce queuing delays that will cause p99 latency to spike far beyond 50 ms.
   3. **Pure-Python Ed25519 (ADR D6 Fallback):** If `pip install cryptography` fails (which is probable on s390x without Rust), the plan falls back to pure-Python RFC 8032 Ed25519. In pure Python, signing takes **10–20 ms per signature** on CPU. Doing this synchronously inside an exclusive file lock guarantees failure of the `< 50 ms p99` latency gate.
 
-### 2.4. Cross-Container SQLite Concurrency on Docker Bind Mounts
+#### 2.4. Cross-Container SQLite Concurrency on Docker Bind Mounts
 * **Reference:** `docs/ARCHITECTURE.md` §2, §5; `docs/DECISIONS.md` ADR D5; `docs/LINUXONE_RUNBOOK.md` §5.
 * **The Design:** `shieldz-api` writes explain jobs to `outbox.sqlite`, and `shieldz-explainer` polls `outbox.sqlite`. Both containers mount `~/shared/ShieldZ/artifacts:/app/artifacts`.
 * **The Risk:**
@@ -59,7 +145,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   - When two separate Docker containers access the same SQLite database file across host bind mounts, POSIX lock semantics and memory-mapped files can fail or trigger `sqlite3.OperationalError: database is locked`, especially across different process namespaces.
   - Additionally, user permissions on bind mounts frequently cause access denial errors unless the UID inside both containers is identical (e.g. UID 1000 in Jupyter vs UID 0 or 1001 in Docker).
 
-### 2.5. Cold-Start Problem in History Store (`features/history.py`)
+#### 2.5. Cold-Start Problem in History Store (`features/history.py`)
 * **Reference:** `docs/ARCHITECTURE.md` §3; `docs/IMPLEMENTATION_PLAN.md` M1.
 * **The Signal:** `payee_prior_inbound` (counted chronologically; low = new/rarely used recipient -> `NEW_RECIPIENT` reason code).
 * **The Bug:**
@@ -71,9 +157,9 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 
 ---
 
-## 3. Machine Learning & Dataset Reality Checks
+### 3. Machine Learning & Dataset Reality Checks
 
-### 3.1. PaySim Class Imbalance & Metric Feasibility (PR-AUC $\ge$ 0.80)
+#### 3.1. PaySim Class Imbalance & Metric Feasibility (PR-AUC $\ge$ 0.80)
 * **Reference:** `docs/IMPLEMENTATION_PLAN.md` M2 Gate (`PR-AUC >= 0.80`, `recall >= 0.80 at FPR <= 1%`); `docs/DECISIONS.md` ADR D12.
 * **Analysis:**
   - PaySim contains 6,362,620 transactions, of which only 8,213 are fraudulent (~0.129%).
@@ -84,7 +170,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   - If the team strictly blocks progress at Gate M2 until hitting PR-AUC 0.80, they risk spending 4+ hours tuning hyperparameters in vain.
 * **Recommendation:** Treat PR-AUC $\ge$ 0.80 as a target, but allow an explicit, documented exemption in `progress.md` (e.g., PR-AUC $\ge$ 0.65 with non-leaky features) to keep the hackathon pipeline moving.
 
-### 3.2. SHAP Attribution vs. Fixed Bucket Logic Contradiction
+#### 3.2. SHAP Attribution vs. Fixed Bucket Logic Contradiction
 * **Reference:** `docs/ARCHITECTURE.md` §4; `docs/IMPLEMENTATION_PLAN.md` M2.
 * **Contradiction:**
   - Section 4 states: *"Level in {LOW, MEDIUM, HIGH} comes from fixed buckets on the feature value (e.g. amount_to_balance >= 0.9 -> HIGH)"*.
@@ -95,9 +181,9 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 
 ---
 
-## 4. LinuxONE (s390x) & Infrastructure Pitfalls
+### 4. LinuxONE (s390x) & Infrastructure Pitfalls
 
-### 4.1. Unrealistic PyPI Assumption for `cryptography` vs. Ubuntu `apt`
+#### 4.1. Unrealistic PyPI Assumption for `cryptography` vs. Ubuntu `apt`
 * **Reference:** `docs/IMPLEMENTATION_PLAN.md` M0 Task 4; `docs/DECISIONS.md` ADR D6.
 * **The Flaw:** The plan allocates a 30-minute spike to run `pip install cryptography`, expecting it to fail because PyPI lacks an s390x wheel and needs Rust. It then plans to spend hours writing a custom RFC 8032 Ed25519 engine.
 * **The Missed Solution:**
@@ -106,7 +192,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   - Running `apt-get install -y python3-cryptography` installs a fully compiled, C-accelerated, bug-free Ed25519 library in seconds.
   - Trying to compile Rust crates via `pip` or writing raw curve math (`2^255 - 19` arithmetic) in pure Python during an 18-hour hackathon is an unnecessary high-risk distraction.
 
-### 4.2. Hardcoded CPU Pinning on 2-vCPU Virtual Machines
+#### 4.2. Hardcoded CPU Pinning on 2-vCPU Virtual Machines
 * **Reference:** `docs/LINUXONE_RUNBOOK.md` §5; `docs/ARCHITECTURE.md` §8.
 * **The Command:**
   ```bash
@@ -119,7 +205,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
     `docker: Error response from daemon: invalid argument "2-3" for --cpuset-cpus: cpu out of range`.
   - The scripts must dynamically inspect `nproc` or use fractional quotas (`--cpus=1.0`) if fewer than 4 cores exist.
 
-### 4.3. RAM & Disk Constraints on L1CC VM
+#### 4.3. RAM & Disk Constraints on L1CC VM
 * **Dataset Size:** PaySim uncompressed CSV is ~493 MB.
 * **Memory Pressure:** Loading 6.3M rows into a pandas DataFrame requires ~1.8 GB RAM. Running feature engineering and XGBoost training will spike memory past 4 GB.
 * **Disk Pressure:** The base Jupyter container image is ~5–8 GB. Building another Docker image on top, downloading PaySim, and running Docker builds can easily exhaust a 20 GB root disk.
@@ -127,9 +213,9 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 
 ---
 
-## 5. Local Development & Tooling Roadblocks
+### 5. Local Development & Tooling Roadblocks
 
-### 5.1. Broken `.gitignore` Threatens Invariant I9
+#### 5.1. Broken `.gitignore` Threatens Invariant I9
 * **Reference:** `docs/GIT_WORKFLOW.md` §5; `docs/ARCHITECTURE.md` §6 (Invariant I9).
 * **The Bug:**
   - Both documents state that `.gitignore` prevents committing keys, datasets, and artifacts.
@@ -141,7 +227,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
   - It does **NOT** ignore `data/`, `artifacts/`, `*.gguf`, `*.pem`, `*.key`, `.venv/`, `__pycache__/`, or `*.sqlite`.
   - If any developer runs a script that generates keys or creates local databases, git will immediately track and stage them. Committing a secret key violates Invariant I9.
 
-### 5.2. Local Tooling Discrepancies
+#### 5.2. Local Tooling Discrepancies
 * **Python Version:** The local environment on this workstation runs **Python 3.13.0**, whereas the project plan strictly mandates **Python 3.12** pinned to match the LinuxONE image.
 * **Missing Package Managers:** The instructions in `AGENTS.md` specify:
   `uv venv --python 3.12 && uv pip install -r requirements/local-dev.txt`
@@ -150,9 +236,9 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 
 ---
 
-## 6. Process & Timeline Critique: The 18-Hour Sprint Trap
+### 6. Process & Timeline Critique: The 18-Hour Sprint Trap
 
-### 6.1. Heavy Process Overhead vs. Elapsed Time
+#### 6.1. Heavy Process Overhead vs. Elapsed Time
 - The team has adopted an extensive handover protocol:
   - Commit `wip(...)`
   - Update `progress.md` snapshot
@@ -163,14 +249,14 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 - With 4 team members and multiple sleep shifts, following this rigid ceremony will consume **over 2 to 3 hours** of precious engineering time purely on status administration.
 - Currently, more words have been written documenting the plan than all eventual code combined.
 
-### 6.2. The Sequential Main-Build Baton Bottleneck
+#### 6.2. The Sequential Main-Build Baton Bottleneck
 - The "Main-build baton" assigns all critical path work (contracts -> features -> model -> API service -> outbox) to **Member 1**.
 - If Member 1 runs into issues with feature engineering or model convergence on PaySim, Members 2, 3, and 4 are partially blocked or writing stubs against a contract that has not yet been validated by real data.
 - **Recommendation:** Parallelize immediately. Member 1 creates `contracts.py` and `privacy/strip.py`. Member 2 starts on `leak_audit/canaries.py` and `audit/chain.py` simultaneously. Member 3 immediately runs environment probes on the VM.
 
 ---
 
-## 7. Actionable Priority Recommendations
+### 7. Actionable Priority Recommendations
 
 | Priority | Area | Action Required |
 |---|---|---|
@@ -190,7 +276,7 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 
 ---
 
-## 8. Resolution log: what was fixed and where
+### 8. Resolution log: what was fixed and where
 
 *Added 2026-10-17 ~17:00 IST (Claude Code). Applied in commit `8e58a4d`. The same verdicts are in `docs/DECISIONS.md` → ADR D16.*
 
@@ -221,4 +307,3 @@ However, a deep engineering audit of the codebase, planning assumptions, and run
 - Granite always falling back to the template;
 - cold-start history;
 - fewer than 4 vCPUs.
-
