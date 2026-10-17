@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from shieldz.config import ROOT, model_dir
-from shieldz.contracts import FEATURE_ORDER, FeatureVector
-from shieldz.model.data import default_data_path, get_peak_rss_mb, load_paysim, time_based_split
+from shieldz.contracts import FeatureVector
+from shieldz.model.data import default_data_path, get_peak_rss_mb, load_paysim
 from shieldz.model.engine import XGBoostEngine
 from shieldz.model.evaluate import evaluate_model
 from shieldz.model.export import export_model_artifacts
@@ -56,8 +55,12 @@ def main():
     sample_path = ROOT / "data" / "paysim_sample.csv.gz"
     if not sample_path.exists():
         print(f"\nCreating 200k sample for local dev at {sample_path}...")
-        sample_idx = np.random.default_rng(20261017).choice(len(X), size=min(200_000, len(X)), replace=False)
-        sample_df = pd.concat([X.iloc[sample_idx], y.iloc[sample_idx], step.iloc[sample_idx]], axis=1)
+        sample_idx = np.random.default_rng(20261017).choice(
+            len(X), size=min(200_000, len(X)), replace=False
+        )
+        sample_df = pd.concat(
+            [X.iloc[sample_idx], y.iloc[sample_idx], step.iloc[sample_idx]], axis=1
+        )
         sample_df.to_csv(sample_path, compression="gzip", index=False)
         print("Sample created successfully.")
 
@@ -134,7 +137,7 @@ def main():
     p99_ms = float(np.percentile(latencies_ms, 99))
     max_ms = float(np.max(latencies_ms))
 
-    print(f"Engine Latency (score + reasons) over 5,000 single-row queries:")
+    print("Engine Latency (score + reasons) over 5,000 single-row queries:")
     print(f"  p50: {p50_ms:.3f} ms ({np.percentile(latencies_us, 50):.1f} us)")
     print(f"  p95: {p95_ms:.3f} ms ({np.percentile(latencies_us, 95):.1f} us)")
     print(f"  p99: {p99_ms:.3f} ms ({np.percentile(latencies_us, 99):.1f} us) [Target: <= 5.0 ms]")

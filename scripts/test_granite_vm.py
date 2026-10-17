@@ -1,10 +1,12 @@
 """Test Granite 4.0 LLM generation on LinuxONE s390x."""
 
 import time
+
+from shieldz.contracts import DecisionKind, ExplainJob, Language, Level, Reason, ReasonCode
 from shieldz.explainer.granite import GraniteGenerator
+from shieldz.explainer.guard import validate_output, validate_prompt
 from shieldz.explainer.prompt import build_prompt
-from shieldz.explainer.guard import validate_prompt, validate_output
-from shieldz.contracts import ExplainJob, DecisionKind, Level, Reason, ReasonCode, Language
+
 
 def test():
     print("Initializing GraniteGenerator...")
@@ -36,6 +38,7 @@ def test():
 
     ok_output, why_output = validate_output(text)
     print(f"\nOutput Guard passed: {ok_output} (reason: {why_output})")
+
 
 if __name__ == "__main__":
     test()

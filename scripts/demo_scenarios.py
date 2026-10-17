@@ -104,7 +104,8 @@ SCENARIOS: dict[str, DemoScenario] = {
             "Decision: BLOCK. Risk: HIGH.\n"
             "Reasons:\n"
             "- AMOUNT_HIGH_VS_BALANCE (HIGH): The payment uses most of the money in the account.\n"
-            "- MULE_ACCOUNT_PATTERN (HIGH): The receiving account has mule or suspicious characteristics.\n"
+            "- MULE_ACCOUNT_PATTERN (HIGH): The receiving account has mule or suspicious "
+            "characteristics.\n"
             "- ACCOUNT_DRAIN (HIGH): The payment would leave the account empty.\n"
             "Language: English.\n"
             "Write two or three calm, simple sentences warning an elderly customer. "
@@ -308,7 +309,10 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
                     break
                 time.sleep(1.0)
             if not explanation_found:
-                print("  ℹ️  Explanation job still queued in outbox (worker still generating or not running).")
+                print(
+                    "  ℹ️  Explanation job still queued in outbox "
+                    "(worker still generating or not running)."
+                )
 
             print(f'  📱 Family Alert Dispatched: "{sc.family_alert_preview}"')
         print()

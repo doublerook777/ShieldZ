@@ -1,7 +1,5 @@
 """Parity tests for XGBoost model predictions and TreeSHAP reason codes (Gate M2)."""
 
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -68,5 +66,5 @@ def test_reason_codes_property_and_determinism():
         assert r1 == r2
 
         # 2. Closed enum property
-        for code, level in r1:
+        for code, _ in r1:
             assert code in valid_enum_values

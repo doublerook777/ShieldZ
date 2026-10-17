@@ -1,6 +1,5 @@
 """Download PaySim dataset directly from Kaggle and prepare paysim1.csv.gz."""
 
-import os
 import shutil
 import subprocess
 import time
@@ -37,10 +36,15 @@ t1 = time.time()
 
 # Use gzip subprocess for fast compression
 with open(raw_csv, "rb") as f_in:
-    with subprocess.Popen(["gzip", "-c"], stdin=subprocess.PIPE, stdout=open(dest_gz, "wb")) as proc:
+    with subprocess.Popen(
+        ["gzip", "-c"], stdin=subprocess.PIPE, stdout=open(dest_gz, "wb")
+    ) as proc:
         shutil.copyfileobj(f_in, proc.stdin)
         proc.stdin.close()
         proc.wait()
 
-print(f"Compression complete in {time.time() - t1:.1f} s. Result: {dest_gz} ({dest_gz.stat().st_size / 1e6:.1f} MB)")
+print(
+    f"Compression complete in {time.time() - t1:.1f} s. Result: {dest_gz} "
+    f"({dest_gz.stat().st_size / 1e6:.1f} MB)"
+)
 print("PaySim Kaggle download and setup complete!")
