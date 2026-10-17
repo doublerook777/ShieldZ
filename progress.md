@@ -10,13 +10,13 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 17:42 IST · M4 Canary Leak Audit done on `m4/proof-canary-leak-audit` (Member 2, Antigravity). C-004 review posted to `main`. |
+| **Last updated** | 2026-10-17 · contracts frozen, M1 merged to `main` (Member 1, Claude Code) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M4 ✅ local (Member 2) · M1 awaiting freeze (C-004 review done by M2) · M6 + M5 next for Member 2 |
-| **Active branches** | main · `m1/contracts-privacy` (Member 1, awaiting M3/M4 reviews) · `m4/proof-canary-leak-audit` (Member 2, pushed — needs human PR review before merge) |
+| **Current milestone** | M1 gate: remaining items are VM-side (Member 3: golden parity, full PaySim load) · M3 main build next |
+| **Active branches** | main |
 | **Blockers** | None. Two non-blocking questions for Member 1: (1) `Explanation.ts` field? (2) What bytes does `AuditCheckpoint.signature` cover? (see C-004 reply) |
-| **Main-build baton** | Member 1 · branch: `m1/contracts-privacy` |
+| **Main-build baton** | Member 1 · branch: — |
 | **Next action** | Member 2: start M6 (`audit/chain.py`, `signing.py`, `verify.py`) while waiting for M1 freeze. Member 1: see C-004 for 2 quick questions. Member 3/4: please reply to C-004. |
 
 ---
@@ -54,7 +54,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 ### M1 — Contracts and feature pipeline
 - [ ] Contract tests · [ ] PII barrier test · [ ] Feature unit tests · [ ] No post-transaction columns
 - [ ] Feature parity local vs VM · [ ] Full PaySim loads on VM (peak RSS: ___)
-- [ ] Contracts reviewed by B, C, D → **FROZEN**
+- [x] Contracts reviewed by B, C, D → **FROZEN** at `9cf57ee` (C-004)
 
 ### M2 — Model, thresholds, reason codes
 - [ ] PR-AUC ≥ 0.80 (got ___) · [ ] recall ≥ 0.80 @ FPR ≤ 1% (got ___)
@@ -106,7 +106,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ## Open questions
 
-Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: C-004 (review the M1 contracts, Members 2/3/4). (C-002 resolved: repo is private for now, so the VM uses a deploy key; make it public in M8. C-003 resolved: `CLAUDE.md` stays gitignored.)
+Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: none. (C-004 resolved: contracts frozen at `9cf57ee`.) (C-002 resolved: repo is private for now, so the VM uses a deploy key; make it public in M8. C-003 resolved: `CLAUDE.md` stays gitignored.)
 
 ---
 
@@ -130,6 +130,11 @@ Entry template:
 - State left in: M4 local ✅ done. VM run still needed (M4 gate: "VM 0 leaks"). M6 (audit chain) and M5 (explainer) not yet started.
 - Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
 - Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
+
+### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M1 merged, contracts frozen
+- Did: applied Member 2's review (`Explanation.ts` added), squash-merged to `main` as `9cf57ee`, closed C-004. 58 tests pass on `main` (includes Member 2's M4 tests).
+- Left for the M1 gate: golden parity on the VM, and the full PaySim load with peak RSS (Member 3). Then tag `m1-gate`. Not tagged yet.
+- Next step: M3 on `m3/service-outbox`: stub engine, `decide.py`, `outbox/queue.py`, `privacy/redact_log.py`, then `service/app.py`.
 
 ### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M1
 - Did: skeleton merged to `main` (7393706). On `m1/contracts-privacy`: `contracts.py`, `config.py`, `privacy/{tokenize,strip}.py`, `features/{engineer,history}.py` + `demo_seed.csv`, `tests/golden/features_v1.csv` (200 rows) and `scripts/make_golden_features.py`. `engineer` and `engineer_frame` share one numpy code path.

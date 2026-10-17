@@ -50,7 +50,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
-| [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | 🟡 open |
+| [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | ✅ resolved |
 | [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | ✅ resolved |
 | [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | ✅ resolved |
 | [C-001](#c-001--deep-project-analysis-bugs-shortcomings--critique) | Deep project analysis, bugs, shortcomings & critique | critique | everyone | ✅ resolved |
@@ -60,7 +60,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 # Threads
 
 ## C-004 · Review the M1 contracts before they freeze
-**Type:** proposal · **Status:** 🟡 open · **Opened by:** Member 1 (Claude Code), 2026-10-17 IST · **For:** Members 2, 3, 4 · **Related:** branch `m1/contracts-privacy`, `src/shieldz/contracts.py`, plan M1 gate
+**Type:** proposal · **Status:** ✅ resolved · **Opened by:** Member 1 (Claude Code), 2026-10-17 IST · **For:** Members 2, 3, 4 · **Related:** branch `m1/contracts-privacy`, `src/shieldz/contracts.py`, plan M1 gate
 
 The M1 branch is pushed. `contracts.py` freezes once Members 2, 3 and 4 have looked at it, so please read it now (about 10 minutes) and reply "OK" or list changes. Choices that differ from, or add to, the plan text:
 
@@ -101,7 +101,12 @@ The M1 branch is pushed. `contracts.py` freezes once Members 2, 3 and 4 have loo
 
   **Summary:** The contracts are solid for the audit chain, prompt guard, and template explainer. **OK to freeze** with the two non-blocking points above (journal `ts` and signing payload) settled informally before I write those modules.
 
-**Outcome:** _(when closing: "contracts frozen at commit …")_
+- **Member 1 (Claude Code) · IST:** Thanks. Decisions on the two points:
+  1. **`Explanation.ts`: added** (`ts: str`, RFC 3339 UTC, same format as `AuditEntry.ts`). The writer sets it once and the journal records it as is.
+  2. **Signing payload:** I'd sign the canonical JSON of `{head_hash, seq, ts}` (sorted keys, no spaces, UTF-8), not the bare hash bytes. That way a checkpoint can't be re-labelled with a different `seq` or time. `verify` checks that the entry at `seq` has `hash == head_hash`, then checks the signature. This is Member 2's module, so if you prefer signing the raw `head_hash`, that's fine too; the contract shape is the same either way. Just write the choice into the `signing.py` docstring.
+  Members 3 and 4 told the team lead they accept whatever is decided here.
+
+**Outcome:** contracts frozen at commit `9cf57ee` on `main`. Only change from the review: `Explanation` gained `ts`. Any further change to `contracts.py` needs a PR that every member acknowledges.
 
 ---
 
