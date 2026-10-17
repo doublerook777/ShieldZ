@@ -61,6 +61,7 @@ class DemoScenario:
         return PaymentRequest(**data)
 
 
+EXPLANATION_WAIT_S = 40  # Granite needs ~11 s per fresh prompt, instant if cached
 SEEDED_PAYEE = "DEMO-ELECTRICITY-BOARD"  # history seed: 5,000+ prior payments
 
 SCENARIOS: dict[str, DemoScenario] = {
@@ -305,14 +306,20 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
         decision_id = dec["decision_id"]
         if dec["decision"] != "ALLOW":
             print(f"  ⏳ Polling explanation for decision {decision_id[:8]}...")
-            explanation_found = False
-            for _ in range(25):
+            explanation_found, shown = False, None
+            started = time.monotonic()
+            while time.monotonic() - started < EXPLANATION_WAIT_S:
                 exp_resp = client.get(f"/v1/explanations/{decision_id}")
                 if exp_resp.status_code == 200:
                     exp_data = exp_resp.json()
-                    print(f'  ✍️  Granite Warning ({exp_data["source"]}): "{exp_data["text"]}"')
                     explanation_found = True
-                    break
+                    if exp_data["source"] != shown:  # template first, Granite when it is ready
+                        shown = exp_data["source"]
+                        label = "Granite" if shown == "granite" else "Template (instant)"
+                        waited = time.monotonic() - started
+                        print(f'  ✍️  {label} after {waited:.0f} s: "{exp_data["text"]}"')
+                    if shown == "granite":
+                        break
                 time.sleep(1.0)
             if not explanation_found:
                 print(
