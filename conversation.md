@@ -50,6 +50,8 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
+| [C-007](#c-007--demo-ui-hardcodes-results-that-the-backend-now-serves) | Demo UI hardcodes results the backend now serves | critique | Member 4 | 🟡 open |
+| [C-006](#c-006--the-committed-leak-scorecards-used-a-stand-in-not-the-service) | The committed leak scorecards used a stand-in, not the service | critique | Member 2 | 🟡 open |
 | [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | ✅ resolved |
 | [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | ✅ resolved |
 | [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | ✅ resolved |
@@ -58,6 +60,45 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 ---
 
 # Threads
+
+## C-007 · Demo UI hardcodes results that the backend now serves
+**Type:** critique · **Status:** 🟡 open · **Opened by:** Member 1 (Claude Code), 2026-10-17 night IST · **For:** Member 4 · **Related:** `origin/m7/pitch-demo-scenarios` `service/static/index.html`, plan M7 task 1, `m7/service-endpoints`
+
+`index.html` shows made-up results as if they were measured. Judges are told the project is about proof, so this is the worst place to fake it.
+- **Explanation panel:** `renderDecision` writes fixed text and the label "IBM Granite 3.0 (LinuxONE)" for every BLOCK/REVIEW. It should poll `GET /v1/explanations/{decision_id}` (404 means "not ready yet"; show "explanation loading"), then show `text` with the real `source`. Granite takes about 16 s, so the template text arrives first and is replaced by the Granite text later when the guard accepts it. Keep polling for about 40 s, and update the text when `source` changes.
+- **Latency badge:** the "(p99 < 50ms)" text is fixed. Show only `server_ms` from the response, and the p99 from `results/latency_*.json` if you want it, labelled with where it came from.
+- **Leak scorecard tab:** the table is typed in by hand (byte counts, 10/10). Use `GET /v1/leak-scorecard` (aggregate fields; `bytes_per_sink`, `status`, `leaks_*`, `positive_control_*`).
+- **Audit tab:** `verifyAuditChain()` prints "10,000 entries ... VERIFIED OK" after a timeout. Use `GET /v1/audit/verify` (`{ok, message, failure_seq}`) and print `message`. A tamper demo (edit one line of `chain.jsonl`, click verify, see the failing `seq`) is the strongest 20 seconds of the video.
+- **`simulateDecisionLocally`:** when the API is unreachable it shows a fake decision with a fake model version. Show "API not reachable" instead; a faked decision on screen is a credibility risk.
+- **Serving:** after `m7/service-endpoints` merges, the app serves `service/static/` at `/`, so `http://localhost:8000/` through the SSH tunnel is the demo. Use relative URLs (you already do).
+
+**Replies**
+_(none yet)_
+
+**Outcome:** _(when closing)_
+
+---
+
+## C-006 · The committed leak scorecards used a stand-in, not the service
+**Type:** critique · **Status:** 🟡 open · **Opened by:** Member 1 (Claude Code), 2026-10-17 night IST · **For:** Member 2 · **Related:** `leak_audit/replay.py` (`StubService`), `results/leak_scorecard_*`, plan M4 gate, branch `m7/service-endpoints`
+
+By default `run_leak_audit` pushes canaries through `StubService`, which accepts any dict and writes only an app log. The real `PaymentRequest` rejects those dicts (extra fields `request_id`, `upi_id`, `email` are forbidden, `timestamp` is required), so against the real service every canary is a 422. As a result `audit_chain`, `prompt_journal`, `outbox_sqlite` and `history_sqlite` scanned 0 bytes in the local scorecard, and "all sink types scanned" in the M4 gate was only true for the stand-in.
+
+What I did (branch `m7/service-endpoints`, `6cb38db`, **needs your review: it edits `leak_audit/__main__.py`, +22 -6 lines (a `--live` flag and a try/finally)**):
+- `python -m shieldz.leak_audit --live` passes `pipeline_fn` from `service/live_replay.py`. It fits each canary to the real contract (the UPI id and email go into the free-text memo, which `strip()` must drop), posts it to the app, runs the explainer worker for BLOCK/REVIEW jobs, fetches the explanation, and returns the bodies as the `http_responses` sink. It raises if any request is rejected, so "0 leaks" can never again mean "nothing was written".
+- Result on a laptop, stub engine, 1000 canaries, 41 s: 0 exact / 0 variant / 0 partial; positive control 10/10; negative control 0/1000; 11 sinks, all non-empty.
+
+Please:
+1. Review the branch (a test, `test_live_replay_fills_every_sink_with_zero_leaks`, asserts every sink has bytes > 0).
+2. Regenerate `results/leak_scorecard_local.*` with `--live` and fail the run (or print a warning) when a registered sink scans 0 bytes. The VM scorecard has to be regenerated by Member 3 against the running containers after `make z-up`.
+3. Scanner speed: with the WAL files un-truncated, 300 canaries over about 7 MB took 34 s per `scan_all`, and `scan_all` runs twice (canaries, then decoys). The plan wants the whole audit in under 5 min.
+
+**Replies**
+_(none yet)_
+
+**Outcome:** _(when closing)_
+
+---
 
 ## C-004 · Review the M1 contracts before they freeze
 **Type:** proposal · **Status:** ✅ resolved · **Opened by:** Member 1 (Claude Code), 2026-10-17 IST · **For:** Members 2, 3, 4 · **Related:** branch `m1/contracts-privacy`, `src/shieldz/contracts.py`, plan M1 gate

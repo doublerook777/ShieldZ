@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 20:15 IST · M5 and M6 merged to `main` (Member 2, Antigravity). 97 tests passing. |
+| **Last updated** | 2026-10-17 night IST · Member 1: audit wiring + explainer worker on `main` (`169ad35`, 110 tests); `m7/service-endpoints` pushed, waiting for review. |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
 | **Current milestone** | M4 ✅ · M6 ✅ (`main`) · M5 ✅ local proof (`main`) · VM checks pending for Member 3 |
-| **Active branches** | main |
-| **Blockers** | None. VM checks pending for Member 3 |
+| **Active branches** | `m7/service-endpoints` (Member 1, needs Member 2 review: touches `leak_audit/`), `m7/pitch-demo-scenarios` (Member 4, not merged) |
+| **Blockers** | VM: image never built (`make z-build`), so M3 Z-half, M5 VM items and the real Leak Audit on Z are open. The committed leak scorecards were made with a log-only stand-in: see C-006 |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 3: M0 VM spikes, M1 golden parity + M2 (model), and M5 VM explainer worker (Granite container). Member 4: pitch & review. |
+| **Next action** | Member 3: `make z-build && make z-up && make bench TAG=stub`, then `granite.py` and M2. Member 2: review `m7/service-endpoints`, then re-run the Leak Audit with `--live` (C-006). Member 4: wire the UI to the real endpoints (C-007). |
 
 ---
 
@@ -165,8 +165,15 @@ Entry template:
 - Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
 - Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
 
+### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M7 backend + live Leak Audit
+- Did: `GET /v1/audit/verify` and `GET /v1/leak-scorecard` (aggregate fields only), the app serves `service/static/` at `/` when it exists, `config.results_dir()`, `make z-up` mounts `results/` read-only into the api. `python -m shieldz.leak_audit --live` (`service/live_replay.py`) replays canaries through the real app and the explainer worker. 115 tests pass.
+- Evidence: **the committed leak scorecards came from a log-only stand-in.** The real `PaymentRequest` (extra fields forbidden, `timestamp` required) rejects every canary the stand-in accepted, and audit chain, prompt journal, outbox and history scanned 0 bytes. With `--live` (1000 canaries, laptop, stub engine, 41 s): 0 exact / 0 variant / 0 partial leaks, positive control 10/10, 11 sinks all non-empty (audit chain 374 KB, journal 212 KB, outbox 434 KB, history 111 KB, app log 272 KB, responses 510 KB). Scorecard in `results/` NOT regenerated yet.
+- Branch / commit: `m7/service-endpoints` (`6cb38db`), pushed, not merged: it edits `leak_audit/__main__.py`, so it needs a human reviewer (Member 2).
+- State left in: UI on Member 4's branch hardcodes the explanation text, the leak table and the "chain verified" output (C-007). Image still never built on the VM.
+- Gotchas: SQLite WAL files add MBs of duplicate pages to the scan unless checkpointed (`live_replay` does it every 100 canaries). The scanner costs about 4 s per MB for 300 canaries (C-006).
+
 ### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M3 audit wiring + explainer worker
-- Did: wired `AuditChain` + `CheckpointSigner` into `Pipeline` (`audit_append`, started and stopped in the app lifespan; paths in `config.py`; `make verify` updated). Wrote `explainer/worker.py`: publishes the template text at once, then asks the LLM through a `Generator` and replaces the text if `validate_prompt`/`validate_output` pass; guard failure or LLM error keeps the template. `Outbox.requeue_running()` recovers crashed jobs. 112 tests pass.
+- Did: wired `AuditChain` + `CheckpointSigner` into `Pipeline` (`audit_append`, started and stopped in the app lifespan; paths in `config.py`; `make verify` updated). Wrote `explainer/worker.py`: publishes the template text at once, then asks the LLM through a `Generator` and replaces the text if `validate_prompt`/`validate_output` pass; guard failure or LLM error keeps the template. `Outbox.requeue_running()` recovers crashed jobs. 110 tests pass.
 - Evidence: local end-to-end (api pinned to 1 core + worker + bench, 6300 requests): `shieldz.audit.verify` PASS with 49 signed checkpoints; client p99 4.3 ms @c=1, 21.9 ms @c=8; worker explained every REVIEW/BLOCK job.
 - Gotchas: **without `cryptography` the signer falls back to pure Python (~250 ms per signature, holding the GIL): p99 jumped to 65-209 ms.** The Containerfile installs apt `python3-cryptography` and fails the build otherwise; the app logs `signer_backend` at startup (must say `cryptography` on the VM). `cryptography` added to `local-dev.txt` for laptops only. Audit append failure logs `audit_error` and does not fail the decision.
 - For Member 3: write `src/shieldz/explainer/granite.py` with `class GraniteGenerator: name = "granite"; def generate(self, prompt: str) -> str` (llama_cpp, `n_threads=2`, small `max_tokens`), then run the explainer with `SHIELDZ_EXPLAINER=granite`. Until then the worker is template-only.
