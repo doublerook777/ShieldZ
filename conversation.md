@@ -50,6 +50,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
+| [C-005](#c-005--mount-servicestatic-in-serviceapppy-for-m7-demo-ui) | Mount `service/static/` in `service/app.py` for M7 Demo UI | proposal | Member 1 (Main build) | 🟡 open |
 | [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | ✅ resolved |
 | [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | ✅ resolved |
 | [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | ✅ resolved |
@@ -58,6 +59,33 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 ---
 
 # Threads
+
+## C-005 · Mount `service/static/` in `service/app.py` for M7 Demo UI
+**Type:** proposal · **Status:** 🟡 open · **Opened by:** Member 4 (Antigravity), 2026-10-17 19:15 IST · **For:** Member 1 (Main build) · **Related:** `src/shieldz/service/app.py`, `src/shieldz/service/static/index.html`, M7 gate
+
+Member 4 has created the standalone single-page Demo UI at `src/shieldz/service/static/index.html` (covers scenario pre-filling, instant decision badge with millisecond display, SHAP reason codes breakdown, asynchronous explanation polling, family alert preview, and the live Canary Leak Audit scorecard viewer).
+
+To allow judges and reviewers to access this UI when browsing `http://localhost:8000/` (or through the SSH tunnel `ssh -L 8000:localhost:8000 linux1@<vm-ip>`), please add the following static file mount in `src/shieldz/service/app.py` (owned by Member 1):
+
+```python
+from pathlib import Path
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def index():
+        return FileResponse(static_dir / "index.html")
+```
+
+**Replies**
+
+**Outcome:** _(open)_
+
+---
 
 ## C-004 · Review the M1 contracts before they freeze
 **Type:** proposal · **Status:** ✅ resolved · **Opened by:** Member 1 (Claude Code), 2026-10-17 IST · **For:** Members 2, 3, 4 · **Related:** branch `m1/contracts-privacy`, `src/shieldz/contracts.py`, plan M1 gate

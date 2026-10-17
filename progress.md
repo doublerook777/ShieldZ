@@ -10,14 +10,15 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 19:35 IST · M5 explainer proof components completed on `m5/proof-explainer-guard` (Member 2, Antigravity) |
+| **Last updated** | 2026-10-17 19:45 IST · M5 & M6 proof components done; Member 4 demo scenarios & UI created |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M4 ✅ · M6 ✅ local (`m6/proof-audit-trail`) · M5 ✅ local proof (`m5/proof-explainer-guard`) · VM checks pending for Member 3 |
-| **Active branches** | main · `m6/proof-audit-trail` (pushed) · `m5/proof-explainer-guard` (pushed) |
+| **Current milestone** | M4 ✅ · M6 ✅ local · M5 ✅ local proof · M7/M8 demo & pitch prep ✅ · VM checks pending for Member 3 |
+| **Active branches** | main · `m6/proof-audit-trail` · `m5/proof-explainer-guard` · `m7/pitch-demo-scenarios` |
 | **Blockers** | None. VM checks pending for Member 3 |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 3: M0 VM spikes, M1 golden parity + M2 (model), and M5 VM explainer worker (Granite container). Member 4: pitch & review. |
+| **Next action** | Member 3: M0 VM spikes, M1 golden parity + M2 (model), and M5 VM explainer worker (Granite container). Member 1: mount static/ per C-005. Member 4: pitch & review, video rehearsal. |
+
 
 ---
 
@@ -124,6 +125,14 @@ Entry template:
 - Gotchas: …
 ```
 
+### 2026-10-17 19:45 IST · Member 4 (Antigravity) · pitch & review · M7 + M8
+- Did: Created `scripts/demo_scenarios.py` with 3 scripted end-to-end demo stories (A: Digital Arrest Imposter Scam -> BLOCK; B: Routine Utility Bill -> ALLOW; C: Borderline Travel Clinic -> REVIEW) with CLI runner, JSON export, and contract verification. Built responsive single-page Demo UI at `src/shieldz/service/static/index.html` (zero external CDN dependencies, scenario pre-filling, instant decision badge, millisecond latency ticker, SHAP reason codes, asynchronous explanation polling, simulated family SMS alert, and live Canary Leak Audit scorecard viewer). Authored `docs/assets/pitch_research.md` with sourced statistics from RBI, I4C, FTC, and NCRB, plus a 3-minute video pitch storyboard. Updated `README.md` with PaySim CC BY 4.0 license, IBM Granite details, and scam citations. Opened C-005 in `conversation.md` proposing static file mount in `service/app.py`.
+- Evidence: `scripts/demo_scenarios.py`, `src/shieldz/service/static/index.html`, `docs/assets/pitch_research.md`, updated `README.md`.
+- Branch / commit: `m7/pitch-demo-scenarios`.
+- State left in: All Member 4 artifacts created. Local venv setup in progress via uv. C-005 open for Member 1.
+- Next step: Verify scenarios locally once venv finishes; rehearse 3:00 video script.
+- Gotchas: Standalone HTML UI works completely offline and renders responsive dark-mode layout matching IBM Design Language.
+
 ### 2026-10-17 19:35 IST · Member 2 (Antigravity) · proof build · M5 (explainer proof components)
 - Did: Implemented Member 2's M5 components on branch `m5/proof-explainer-guard`:
   - `prompt.py`: Canonical prompt renderer strictly from `ExplainJob` enums and reason codes (Invariant I2: zero digits, no request free-text).
@@ -149,6 +158,7 @@ Entry template:
 - State left in: M6 local ✅ done and tested. VM-side 10k verify test and ≤ 1 ms p99 latency check await VM availability.
 - Next step: M5 — Granite explainer (`prompt.py`, allowlist `guard.py`, `template.py`, `journal.py`).
 - Gotchas: When running `python -m shieldz.audit.verify`, lazy-load `verify_audit_trail` in `audit/__init__.py` to avoid runpy submodule warnings. Pure Python Ed25519 matches RFC 8032 §7.1 vectors byte-for-byte.
+
 
 ### 2026-10-17 17:42 IST · Member 2 (Antigravity) · proof build · M4 + C-004
 - Did: Completed full M4 Canary Leak Audit on branch `m4/proof-canary-leak-audit`. Canary generator (1,000 canaries + 1,000 decoys, Indian locale Faker), multi-variant LeakScanner (exact/case-fold/stripped/digits-only/URL/base64/hex/MD5/SHA1/SHA256/partial), SinkRegistry (all 6 ARCHITECTURE §5 sinks + catch-all artifacts walk), LeakScorecard, CLI (`python -m shieldz.leak_audit`), full orchestrator with StubService. Posted contract review in C-004.
