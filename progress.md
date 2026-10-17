@@ -13,11 +13,11 @@
 | **Last updated** | 2026-10-17 · contracts frozen, M1 merged to `main` (Member 1, Claude Code) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M1 gate: remaining items are VM-side (Member 3: golden parity, full PaySim load) · M3 main build next |
+| **Current milestone** | M1 gate: remaining items are VM-side (Member 3: golden parity, full PaySim load) · M3: code and local gate done, waiting on the VM (build, `/healthz`, latency) |
 | **Active branches** | main |
 | **Blockers** | None. The VM is the bottleneck: no LinuxONE facts are recorded yet, so M0 spikes and the M1 VM checks (Member 3) gate M2 |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 3: M0 VM spikes, then M1 task 6 + M2 (model). Member 2: M6 (audit chain; C-004 answers are in the thread). Member 1: M3 on `m3/service-outbox`. Member 4: pitch statistics, demo scenarios |
+| **Next action** | Member 3: M0 VM spikes, then M1 task 6 + M2 (model). Member 2: M6 (audit chain; C-004 answers are in the thread). Member 1: M3 Z-side items once the VM facts are in; meanwhile M3 hardening. Member 4: pitch statistics, demo scenarios |
 
 ---
 
@@ -62,8 +62,9 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 - [ ] Engine p99 ≤ 5 ms on VM (got ___; engine: ___) · [ ] ONNX checker passes
 
 ### M3 — Decision service
-- [ ] API contract tests · [ ] Log PII test · [ ] Container runs on VM, `/healthz` = s390x
-- [ ] p99 < 50 ms @c=1 (got ___) and @c=8 (got ___) · [ ] Outbox row per request
+- [x] API contract tests · [x] Log PII test · [ ] Container runs on VM, `/healthz` = s390x (Containerfile written, never built)
+- [ ] p99 < 50 ms @c=1 (got ___) and @c=8 (got ___) · [x] Outbox row per request (local; re-check after the VM benchmark)
+- Local run (laptop, stub engine, 1000 req): client p99 4.2 ms @c=1, 155 ms @c=8 (server p99 3 ms). The c=8 tail is a risk to measure on the VM.
 
 ### M4 — Canary Leak Audit (never cut)
 - [x] Scanner variant tests · [x] Positive control 10/10 · [x] Local 0 leaks (results/leak_scorecard_local.md)
@@ -130,6 +131,14 @@ Entry template:
 - State left in: M4 local ✅ done. VM run still needed (M4 gate: "VM 0 leaks"). M6 (audit chain) and M5 (explainer) not yet started.
 - Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
 - Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
+
+### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M3 (local half)
+- Did: `service/{decide,stub_engine,pipeline,app}.py`, `outbox/queue.py` (WAL, per-thread connections), `privacy/redact_log.py` (allowlist), `clock.py`, `scripts/bench_latency.py`, `containers/{Containerfile,entrypoint.sh}`, `tests/unit/test_service.py`. 73 tests pass.
+- Evidence: local benchmark above; a real `uvicorn` start creates the pepper, logs only allowlisted fields, saves `history.sqlite` on shutdown.
+- Branch / commit: `m3/service-outbox`.
+- State left in: Containerfile NOT built yet (needs the VM). `Pipeline.audit_append` is the hook for the M6 hash chain (takes a `Decision`).
+- Next step: Member 3 builds the image (`make z-build`), then `make z-up` and `make bench TAG=...`.
+- Gotchas: `SHIELDZ_ENGINE=xgboost` expects `shieldz.model.engine.XGBoostEngine.load(model_dir)`. The explainer entrypoint runs `python -m shieldz.explainer.worker` (not written yet). Outbox status values: pending, running, done, skipped (ALLOW), failed; the explainer should use `Outbox.claim_next()`, `put_explanation()`.
 
 ### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M1 merged, contracts frozen
 - Did: applied Member 2's review (`Explanation.ts` added), squash-merged to `main` as `9cf57ee`, closed C-004. 58 tests pass on `main` (includes Member 2's M4 tests).

@@ -1,0 +1,27 @@
+# One image, two commands: `api` and `explainer` (docs/ARCHITECTURE.md §2).
+# Built on the VM only (make z-build). Not yet built: the first build is part of the M3 gate.
+FROM registry.linuxone.cloud.marist.edu/l1cc/jupyterlab-image-s390x:latest
+
+USER root
+WORKDIR /app
+COPY requirements/ requirements/
+# xgboost, numpy, pandas, scikit-learn, httpx and llama_cpp are already in /opt/venv.
+# cryptography has no s390x wheel: the M0 spike decides how it is installed (progress.md).
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements/z-extra.txt
+
+COPY pyproject.toml pytest.ini ./
+COPY src/ src/
+COPY scripts/ scripts/
+COPY tests/ tests/
+COPY containers/entrypoint.sh /usr/local/bin/shieldz-entrypoint
+RUN chmod +x /usr/local/bin/shieldz-entrypoint \
+    && mkdir -p artifacts results \
+    && chown -R 1000:1000 /app
+
+ENV PATH=/opt/venv/bin:$PATH \
+    PYTHONPATH=/app/src \
+    PYTHONUNBUFFERED=1
+
+USER 1000
+ENTRYPOINT ["shieldz-entrypoint"]
+CMD ["api"]
