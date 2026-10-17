@@ -41,11 +41,7 @@ ssh -i ~/.ssh/l1cc.pem linux1@<vm-ip>
 
 # Clone into the shared folder so Jupyter sees the same files
 cd ~/shared
-git clone https://github.com/doublerook777/ShieldZ.git      # if the repo is public
-# Private repo: add a read-only deploy key instead
-#   ssh-keygen -t ed25519 -f ~/.ssh/shieldz_deploy -N ""
-#   (add ~/.ssh/shieldz_deploy.pub on GitHub → Settings → Deploy keys, read-only)
-#   GIT_SSH_COMMAND="ssh -i ~/.ssh/shieldz_deploy" git clone git@github.com:doublerook777/ShieldZ.git
+git clone https://github.com/doublerook777/ShieldZ.git      # public repo: no key needed (C-002)
 cd ShieldZ && mkdir -p data artifacts results && chmod a+w data artifacts results
 
 # Record facts for progress.md

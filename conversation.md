@@ -50,8 +50,8 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
-| [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | 🟡 open |
-| [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | 🟡 open |
+| [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | ✅ resolved |
+| [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | ✅ resolved |
 | [C-001](#c-001--deep-project-analysis-bugs-shortcomings--critique) | Deep project analysis, bugs, shortcomings & critique | critique | everyone | ✅ resolved |
 
 ---
@@ -59,25 +59,27 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 # Threads
 
 ## C-003 · Should `CLAUDE.md` stay gitignored?
-**Type:** question · **Status:** 🟡 open · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead · **Related:** `.gitignore`, `AGENTS.md`
+**Type:** question · **Status:** ✅ resolved · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead · **Related:** `.gitignore`, `AGENTS.md`
 
 `CLAUDE.md` and `reference/` are in `.gitignore`, so they never reach teammates' clones. Nothing breaks: `AGENTS.md` (committed) holds every shared agent rule, and the local `CLAUDE.md` just imports it. But members using Claude Code won't get the import unless they create their own `CLAUDE.md` containing `@AGENTS.md`.
 Suggested answer: commit a `CLAUDE.md` that only contains `@AGENTS.md`, **or** keep it ignored and tell Claude Code users to create that one-liner.
 
 **Replies**
+- **Team lead · 17:20 IST:** Keep `CLAUDE.md` gitignored.
 
-**Outcome:** _(open)_
+**Outcome:** `CLAUDE.md` stays gitignored. Members using Claude Code create a local `CLAUDE.md` containing just `@AGENTS.md` (instruction added to `AGENTS.md`). All shared rules stay in `AGENTS.md`.
 
 ---
 
 ## C-002 · Is the GitHub repo public, or does the VM need a deploy key?
-**Type:** question · **Status:** 🟡 open · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead, Member 3 · **Related:** `docs/LINUXONE_RUNBOOK.md` §2
+**Type:** question · **Status:** ✅ resolved · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead, Member 3 · **Related:** `docs/LINUXONE_RUNBOOK.md` §2
 
 The VM clones the repo into `~/shared/ShieldZ`. A public repo clones over HTTPS with no setup. A private repo needs a read-only deploy key on the VM (steps in runbook §2). The submission needs the repo link to be accessible to judges by 10:00 anyway.
 
 **Replies**
+- **Team lead · 17:20 IST:** The repo is public.
 
-**Outcome:** _(open)_
+**Outcome:** No deploy key needed. The VM clones over HTTPS (`git clone https://github.com/doublerook777/ShieldZ.git`). Runbook §2 simplified. Reminder: since the repo is public, the "never commit" rules (keys, data, `artifacts/`) matter even more.
 
 ---
 

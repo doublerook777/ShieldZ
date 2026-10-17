@@ -2,6 +2,10 @@
 
 For AI coding agents (Claude Code, Gemini, Copilot, …) **and** the humans driving them. Keep it short and current. The details live in `docs/`.
 
+Claude Code users: `CLAUDE.md` is gitignored (C-003). Create a local `CLAUDE.md` containing just `@AGENTS.md` so Claude Code loads these rules.
+
+The repo is **public** (C-002): anything committed is visible to everyone, so the never-commit list below is strict.
+
 ## Start of every session
 1. Read `progress.md` (status snapshot + newest log entries).
 2. Read the newest 1–2 entries in `explanation.md`.

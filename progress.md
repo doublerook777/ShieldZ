@@ -106,7 +106,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ## Open questions
 
-Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: **C-002** (repo public or deploy key?), **C-003** (should `CLAUDE.md` stay gitignored?).
+Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: none. (C-002 resolved: repo is public, no deploy key. C-003 resolved: `CLAUDE.md` stays gitignored.)
 
 ---
 

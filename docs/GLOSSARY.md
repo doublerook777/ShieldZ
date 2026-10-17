@@ -210,7 +210,7 @@ Plain-language explanations of every technical term used in the ShieldZ docs. Gr
 | **Branch / PR / squash merge / rebase** | Branch: a separate line of work. PR: a request to merge it, with review. Squash merge: the PR becomes one commit on `main`. Rebase: replay your commits on top of the latest `main`. | See GIT_WORKFLOW.md. |
 | **Conventional Commits** | A commit-message style `type(area): summary`. | Readable history. |
 | **Tag** | A permanent name for a commit, e.g. `m3-gate`. | Known-good points to go back to. |
-| **Deploy key** | An SSH key that gives one server read-only access to one repo. | How the VM can clone a private repo. |
+| **Deploy key** | An SSH key that gives one server read-only access to one repo. | Not needed: our repo is public, so the VM clones over HTTPS. |
 | **Handoff** | Passing unfinished work to another person or agent. | progress.md + explanation.md protocol. |
 | **Role** | One member's area of responsibility and the folders only they edit. | Main build, proof build, LinuxONE operator, pitch & review (plan §3). |
 | **Baton (relay)** | The right to edit the main-build files. Exactly one member holds it at a time and passes it on at a handoff. | Lets the critical path continue overnight without conflicts. |
