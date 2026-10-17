@@ -10,13 +10,13 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 ~16:50 IST · critique merged into docs (AI agent, Claude Code) |
+| **Last updated** | 2026-10-17 · M0 skeleton pushed on `m0/infra-skeleton` (Member 1, Claude Code) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
 | **Current milestone** | M0 — not started (critique reviewed and folded into the docs, ADR D16) |
-| **Active branches** | main |
+| **Active branches** | main · `m0/infra-skeleton` (Member 1, awaiting review/merge) |
 | **Blockers** | none |
-| **Main-build baton** | Member 1 · branch: — |
+| **Main-build baton** | Member 1 · branch: `m0/infra-skeleton` |
 | **Next action** | M0 now (we're behind schedule). Member 1: repo skeleton · Member 3: VM facts + spikes (signing: try apt `python3-cryptography` first) · Member 2: PaySim + licence · Member 4: pitch statistics |
 
 ---
@@ -43,7 +43,7 @@ Sleep shifts: Members 1 & 3 sleep 00:30–04:00; Members 2 & 4 sleep 04:00–07:
 Tick a box only when the check really passed. Put the evidence (a file in `results/` or a number) in the log. The full gate definitions are in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ### M0 — Platform spikes and scaffolding
-- [ ] `make test` green locally
+- [x] `make test` green locally (2 smoke tests, on `m0/infra-skeleton`)
 - [ ] `scripts/z_doctor.py` OK on VM
 - [ ] Throwaway image with extras builds on VM
 - [ ] Granite generates on VM (model + tok/s recorded below)
@@ -122,6 +122,14 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 (evening) IST · Member 1 (Claude Code) · main build · M0 task 7/8
+- Did: repo skeleton on `m0/infra-skeleton`: `src/shieldz/` tree (empty packages), `pyproject.toml`, `pytest.ini` (markers z/llm/slow), `requirements/{z-preinstalled,z-extra,local-dev}.txt` pinned to the image versions, `Makefile` (test, lint, fmt, doctor, z-doctor, z-build, z-gate, z-up/down, bench, verify), `scripts/z_doctor.py`, `scripts/check_deps.py`, smoke test.
+- Evidence: laptop `make test` 2 passed, `make lint` clean, `make doctor` ALL OK (Python 3.12.14, versions match the pins). `check_deps.py` agrees with the D-table: snapml has a cp312 s390x wheel; cryptography is sdist-only; onnxruntime has no files.
+- Branch / commit: `m0/infra-skeleton` pushed, not merged (needs review or the 20-min self-merge rule).
+- State left in: `containers/Containerfile` NOT written (M3). `make z-gate`/`z-up` need it. Use `make z-doctor` on the VM for M0 (runs z_doctor in the `notebook` container).
+- Gotchas: ruff 0.17 formats Markdown code blocks, so `extend-exclude = ["*.md"]` is set in pyproject. Local deps install with `uv venv --python 3.12 && uv pip install -r requirements/local-dev.txt -e .`.
+- Next step: merge the skeleton, then M1 (contracts, privacy, features) on a new branch.
 
 ### 2026-10-17 ~17:00 IST · AI agent (Claude Code) · planning · role change
 - Did: Moved `model/` (loader, training, evaluation, engine, reasons, export, thresholds) from the main build to **Member 3**, as the team agreed. Added an `Engine` protocol to the M1 contracts as the hand-off point, and a stub engine so M3 doesn't wait for M2.
