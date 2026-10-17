@@ -6,6 +6,8 @@ IMAGE ?= shieldz:latest
 # Granite weights: the L1CC base image already contains /home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf,
 # so the explainer finds them without a mount. Set GRANITE_GGUF to a host file to use other weights.
 GRANITE_GGUF ?=
+# Decision engine in the api container: xgboost needs artifacts/model/ (model.json, thresholds.json)
+ENGINE ?= xgboost
 # Cores for the benchmark client: everything except the api's core 0 (nproc = 3 on our VM)
 BENCH_CPUS ?= 1-2
 # Path of the repo as the Jupyter container sees it
@@ -50,6 +52,7 @@ z-up: z-build
 	else API=""; EXP="--cpus 0.5"; fi; \
 	docker rm -f shieldz-api shieldz-explainer >/dev/null 2>&1 || true; \
 	docker run -d --name shieldz-api --network host $$API \
+	  -e SHIELDZ_ENGINE=$(ENGINE) \
 	  -v $(CURDIR)/artifacts:/app/artifacts -v $(CURDIR)/results:/app/results:ro $(IMAGE) api; \
 	LLM="-e SHIELDZ_EXPLAINER=granite"; \
 	if [ -n "$(GRANITE_GGUF)" ]; then \
