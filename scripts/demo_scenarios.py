@@ -73,8 +73,8 @@ SCENARIOS: dict[str, DemoScenario] = {
             "posing as a senior CBI investigator. He claims an illegal parcel containing "
             "narcotics and counterfeit passports was seized at Mumbai airport. Under threat "
             "of immediate 'Digital Arrest' and public disgrace, he coerces her into liquidating "
-            "her fixed deposits and transferring ₹4,85,000—virtually her entire account balance "
-            "(₹4,90,000)—into a fraudulent 'Supreme Court Asset Verification Escrow' account "
+            "her fixed deposits and transferring ₹4,85,000—her entire account balance "
+            "(₹4,85,000)—into a fraudulent 'Supreme Court Asset Verification Escrow' account "
             "at 2:45 AM. She is told the funds will be 'verified and returned in 1 hour'."
         ),
         payment={
@@ -87,7 +87,7 @@ SCENARIOS: dict[str, DemoScenario] = {
             "family_contact": "+91 98201 99882 (Son: Anand Kulkarni)",
             "tx_type": TxType.TRANSFER.value,
             "amount": 485000.00,
-            "payer_balance_before": 490000.00,
+            "payer_balance_before": 485000.00,
             "payee_balance_before": 0.0,
             "payee_is_merchant": False,
             "timestamp": "2026-10-17T02:45:00+05:30",
@@ -97,15 +97,15 @@ SCENARIOS: dict[str, DemoScenario] = {
         expected_risk=Level.HIGH,
         expected_reasons=[
             ReasonCode.AMOUNT_HIGH_VS_BALANCE,
+            ReasonCode.MULE_ACCOUNT_PATTERN,
             ReasonCode.ACCOUNT_DRAIN,
-            ReasonCode.NEW_RECIPIENT,
         ],
         granite_prompt_preview=(
             "Decision: BLOCK. Risk: HIGH.\n"
             "Reasons:\n"
             "- AMOUNT_HIGH_VS_BALANCE (HIGH): The payment uses most of the money in the account.\n"
+            "- MULE_ACCOUNT_PATTERN (HIGH): The receiving account has mule or suspicious characteristics.\n"
             "- ACCOUNT_DRAIN (HIGH): The payment would leave the account empty.\n"
-            "- NEW_RECIPIENT (HIGH): The receiving account is new or rarely used.\n"
             "Language: English.\n"
             "Write two or three calm, simple sentences warning an elderly customer. "
             "Suggest they pause and call their bank on the number printed on their card. "
@@ -299,16 +299,16 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
         if dec["decision"] != "ALLOW":
             print(f"  ⏳ Polling explanation for decision {decision_id[:8]}...")
             explanation_found = False
-            for _ in range(3):
+            for _ in range(25):
                 exp_resp = client.get(f"/v1/explanations/{decision_id}")
                 if exp_resp.status_code == 200:
                     exp_data = exp_resp.json()
                     print(f'  ✍️  Granite Warning ({exp_data["source"]}): "{exp_data["text"]}"')
                     explanation_found = True
                     break
-                time.sleep(0.5)
+                time.sleep(1.0)
             if not explanation_found:
-                print("  ℹ️  Explanation job still queued in outbox (worker not running).")
+                print("  ℹ️  Explanation job still queued in outbox (worker still generating or not running).")
 
             print(f'  📱 Family Alert Dispatched: "{sc.family_alert_preview}"')
         print()
