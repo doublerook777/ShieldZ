@@ -6,8 +6,18 @@ USER root
 WORKDIR /app
 COPY requirements/ requirements/
 # xgboost, numpy, pandas, scikit-learn, httpx and llama_cpp are already in /opt/venv.
-# cryptography has no s390x wheel: the M0 spike decides how it is installed (progress.md).
 RUN /opt/venv/bin/pip install --no-cache-dir -r requirements/z-extra.txt
+
+# cryptography has no s390x wheel (M0 spike, ADR D6). Ubuntu's apt package works; expose it to the
+# venv through a .pth file, which appends the system dist-packages AFTER the venv, so the venv's
+# own numpy/xgboost still win. The build fails here if Ed25519 doesn't work, instead of silently
+# falling back to the slow pure-Python signer.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3-cryptography \
+    && rm -rf /var/lib/apt/lists/* \
+    && echo /usr/lib/python3/dist-packages \
+       > "$(/opt/venv/bin/python -c 'import site; print(site.getsitepackages()[0])')/system-dist-packages.pth" \
+    && /opt/venv/bin/python -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey as K; K.generate().sign(b'x')"
 
 COPY pyproject.toml pytest.ini ./
 COPY src/ src/

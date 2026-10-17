@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import json
 import multiprocessing as mp
+import os
 import platform
 import random
 import sqlite3
@@ -134,7 +135,17 @@ def run_level(url: str, n: int, concurrency: int, procs: int, seed: int):
     )
 
 
+def parse_cpus(spec: str) -> set[int]:
+    cpus: set[int] = set()
+    for part in spec.split(","):
+        lo, _, hi = part.partition("-")
+        cpus |= set(range(int(lo), int(hi or lo) + 1))
+    return cpus
+
+
 def main(args: argparse.Namespace) -> int:
+    if args.cpus:  # keep the load generator off the api's pinned cores; children inherit this
+        os.sched_setaffinity(0, parse_cpus(args.cpus))
     outbox_path = Path(args.outbox)
     health = httpx.get(args.url + "/healthz", timeout=10.0).json()
     run_level(args.url, args.warmup, 8, args.procs, seed=1)
@@ -163,6 +174,7 @@ def main(args: argparse.Namespace) -> int:
         "model_version": health.get("model_version"),
         "n_per_level": args.n,
         "client_procs": args.procs,
+        "client_cpus": args.cpus or "unpinned",
         "warmup": args.warmup,
         "gate_p99_ms": GATE_P99_MS,
         "levels": levels,
@@ -188,6 +200,7 @@ if __name__ == "__main__":
     ap.add_argument("--warmup", type=int, default=500)
     ap.add_argument("--concurrency", type=int, nargs="+", default=[1, 8])
     ap.add_argument("--procs", type=int, default=4, help="client processes (default 4)")
+    ap.add_argument("--cpus", default="", help="pin the client to these cores, e.g. 1-2")
     ap.add_argument("--outbox", default="artifacts/runtime/outbox.sqlite")
     ap.add_argument("--out", required=True)
     raise SystemExit(main(ap.parse_args()))

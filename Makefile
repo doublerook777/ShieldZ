@@ -3,6 +3,8 @@
 
 PY ?= .venv/bin/python
 IMAGE ?= shieldz:latest
+# Cores for the benchmark client: everything except the api's core 0 (nproc = 3 on our VM)
+BENCH_CPUS ?= 1-2
 # Path of the repo as the Jupyter container sees it
 JUPYTER_REPO ?= /home/jovyan/shared/ShieldZ
 
@@ -58,7 +60,7 @@ z-down:
 # api's pinned cores. Usage: make bench TAG=stub_w1   (SHIELDZ_WORKERS is set when starting the api)
 bench:
 	docker exec notebook /opt/venv/bin/python $(JUPYTER_REPO)/scripts/bench_latency.py \
-	  --n 5000 --warmup 500 --concurrency 1 8 \
+	  --n 5000 --warmup 500 --concurrency 1 8 --cpus $(BENCH_CPUS) \
 	  --outbox $(JUPYTER_REPO)/artifacts/runtime/outbox.sqlite \
 	  --out $(JUPYTER_REPO)/results/latency_$(TAG).json
 
