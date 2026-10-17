@@ -351,7 +351,7 @@ Tasks
 
 **Gate M8 = submission checklist**
 - [ ] Video ≤ 3:00 and covers all four required points.
-- [ ] Repo public (or link accessible), README credits complete, no secrets/data/models committed (`git ls-files | grep -E 'keys|\.gguf|\.csv'` returns only the golden fixtures).
+- [ ] **Repo switched to public** (it's private until then, C-002) and the link opens in a logged-out browser; README credits complete, no secrets/data/models committed (`git ls-files | grep -E 'keys|\.gguf|\.csv'` returns only the golden fixtures).
 - [ ] Every number in the video matches a file in `results/`.
 - [ ] Submitted before the deadline; confirmation screenshot in `progress.md`.
 

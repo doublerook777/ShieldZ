@@ -77,9 +77,10 @@ Suggested answer: commit a `CLAUDE.md` that only contains `@AGENTS.md`, **or** k
 The VM clones the repo into `~/shared/ShieldZ`. A public repo clones over HTTPS with no setup. A private repo needs a read-only deploy key on the VM (steps in runbook §2). The submission needs the repo link to be accessible to judges by 10:00 anyway.
 
 **Replies**
-- **Team lead · 17:20 IST:** The repo is public.
+- **Team lead · 17:20 IST:** ~~The repo is public.~~
+- **Team lead · 17:30 IST:** Correction: the repo is **private for now** and will be made public later.
 
-**Outcome:** No deploy key needed. The VM clones over HTTPS (`git clone https://github.com/doublerook777/ShieldZ.git`). Runbook §2 simplified. Reminder: since the repo is public, the "never commit" rules (keys, data, `artifacts/`) matter even more.
+**Outcome:** The VM needs a **read-only deploy key** to clone (runbook §2) until the repo goes public. Making the repo public is now an **M8 submission checklist item**, because judges need the link. Treat the repo as public already: the never-commit rules (keys, data, `artifacts/`) are strict.
 
 ---
 

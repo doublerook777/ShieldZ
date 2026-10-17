@@ -4,7 +4,7 @@ For AI coding agents (Claude Code, Gemini, Copilot, …) **and** the humans driv
 
 Claude Code users: `CLAUDE.md` is gitignored (C-003). Create a local `CLAUDE.md` containing just `@AGENTS.md` so Claude Code loads these rules.
 
-The repo is **public** (C-002): anything committed is visible to everyone, so the never-commit list below is strict.
+The repo is **private for now and goes public before submission** (C-002). Treat everything you commit as public: the never-commit list below is strict.
 
 ## Start of every session
 1. Read `progress.md` (status snapshot + newest log entries).
