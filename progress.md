@@ -10,11 +10,11 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 19:35 IST · M5 explainer proof components completed on `m5/proof-explainer-guard` (Member 2, Antigravity) |
+| **Last updated** | 2026-10-17 20:15 IST · M5 and M6 merged to `main` (Member 2, Antigravity). 97 tests passing. |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M4 ✅ · M6 ✅ local (`m6/proof-audit-trail`) · M5 ✅ local proof (`m5/proof-explainer-guard`) · VM checks pending for Member 3 |
-| **Active branches** | main · `m6/proof-audit-trail` (pushed) · `m5/proof-explainer-guard` (pushed) |
+| **Current milestone** | M4 ✅ · M6 ✅ (`main`) · M5 ✅ local proof (`main`) · VM checks pending for Member 3 |
+| **Active branches** | main |
 | **Blockers** | None. VM checks pending for Member 3 |
 | **Main-build baton** | Member 1 · branch: — |
 | **Next action** | Member 3: M0 VM spikes, M1 golden parity + M2 (model), and M5 VM explainer worker (Granite container). Member 4: pitch & review. |
