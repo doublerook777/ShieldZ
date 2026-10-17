@@ -44,6 +44,41 @@ Copy the template below. Rules:
 
 ---
 
+## 2026-10-17 19:45 IST — Member 4 (Antigravity) — Pitch, UI & Demo Scenarios (M7 / M8)
+
+**In one sentence:** I created the 3 realistic demo stories (including the "Digital Arrest" scam), built a responsive single-page demo UI that runs on LinuxONE with zero external dependencies, researched real-world scam statistics from RBI/I4C/FTC, and wrote the complete 3-minute video presentation storyboard.
+
+**What I built or changed (simple words):**
+- `scripts/demo_scenarios.py`: 3 scripted end-to-end stories:
+  - Scenario A: 72-year-old Savitri Devi coerced via Skype by fake police into transferring ₹4.85 lakh (99% balance) to a fake escrow &rarr; **BLOCK** in <5 ms.
+  - Scenario B: Regular ₹1,840.50 electricity bill to a known utility provider &rarr; **ALLOW**.
+  - Scenario C: Urgent ₹8,500 clinic diagnostics payment to a new clinic while traveling &rarr; **REVIEW**.
+  - Added CLI runner (`--list`, `--show`, `--json`, `--verify`, `--run`).
+- `src/shieldz/service/static/index.html`: A self-contained dark-mode dashboard that works completely offline. It pre-fills scenarios, shows an instant decision hero badge with server timing, displays TreeSHAP reason codes, polls IBM Granite for the plain-language warning, renders simulated family SMS alerts, and displays the measured Canary Leak Audit scorecard.
+- `docs/assets/pitch_research.md`: Sourced statistics (₹1,750+ Cr lost in Q1 2024 to cyber scams, $10B FTC losses, senior citizen impact) and a second-by-second 3:00 video storyboard.
+- `README.md`: Verified PaySim CC BY 4.0 license, IBM Granite details, and scam citations.
+- Opened thread `C-005` in `conversation.md` asking Member 1 to mount `static/` in `service/app.py`.
+
+**Why it's done this way:**
+- Offline UI: In hackathons or behind SSH tunnels on LinuxONE, CDNs often fail or add latency. Having self-contained vanilla CSS and JS means the demo is rock-solid under all conditions.
+- Realistic scenarios: Grounding the demo in real RBI and I4C "Digital Arrest" advisories gives judges immediate recognition of the problem.
+
+**How to see it working:**
+    .venv/bin/python scripts/demo_scenarios.py --verify
+    .venv/bin/python scripts/demo_scenarios.py --list
+    Open `src/shieldz/service/static/index.html` in any browser
+
+**What's not done / known problems:**
+- `service/app.py` does not yet mount `service/static` (C-005 opened for Member 1). The HTML file can still be opened directly in a browser.
+
+**If I were continuing, I would next:**
+1. Stand by for PR reviews as other members submit M5, M6, and M2.
+2. Rehearse the 3-minute video script.
+
+**Files to look at first:** `scripts/demo_scenarios.py`, `src/shieldz/service/static/index.html`, `docs/assets/pitch_research.md`
+
+---
+
 ## 2026-10-17 16:30 IST — AI agent (Antigravity) — project analysis & critique
 
 **In one sentence:** I did a deep engineering and architectural review of the entire ShieldZ plan, identified 7 critical vulnerabilities and operational risks, and documented them with solutions in `conversation.md`.
