@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-18 00:05 IST · Member 3: All LinuxONE milestones (M1–M5, M7) verified on s390x. Real Docker container stack deployed (`shieldz:latest`); HTTP latency p99 6.90 ms @c=1, 21.83 ms @c=8 (< 50 ms target); live Canary Leak Audit passed across 11 sinks (16.69 MB scanned, 0 leaks, 10/10 positive control); Granite 4.0 GGUF worker generating explanations; Scenario A BLOCK verified in 1.6–3.9 ms. |
+| **Last updated** | 2026-10-18 ~03:30 IST · Member 1 (also covering Member 3 over SSH): VM redeployed at `c12b386`+. On s390x with the real XGBoost engine: scenarios A BLOCK / B ALLOW / C REVIEW; Granite quality 28/30 (93%) at 10.4 s p50 per fresh generation; busy-explainer p99 11.5 / 23.4 ms; audit chain 22,062 entries verified; live Leak Audit with real Granite: 0 leaks, 11 sinks, 4.8 MB. 136 tests pass. |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M0 ✅ · M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ · M6 ✅ · M7 ✅ (Feature freeze complete; dress rehearsal & submission video) |
+| **Current milestone** | M0-M6 ✅ with s390x evidence in `results/` · M7: backend, UI, scenarios done; timed dress rehearsal open · M8: video, public repo, submission open |
 | **Active branches** | `main` |
-| **Blockers** | VM evidence still missing for M5/M6/M7 (see unticked boxes). `bash scripts/z_evidence.sh` on the VM collects all of it (needs a fresh `make z-build && make z-up`, which now fails the build if the fast Ed25519 signer is missing). Scenario C REVIEW is unverified. |
-| **Main-build baton** | Member 3 / Member 4 (Demo pitch, video recording, submission packet) |
-| **Next action** | On the VM: `git pull && make z-build && make z-up && bash scripts/z_evidence.sh`, commit `results/`, then tag gates. If scenario C is not REVIEW, widen the model's REVIEW band (`thresholds.json`) or adjust scenario C. Then dress rehearsal and the video. |
+| **Blockers** | None technical. Needs a human: (1) review of the Granite prompt/guard changes (C-008); (2) decide whether to keep the policy rule that makes scenario C a REVIEW (`review_new_payee_min` in `thresholds.json`, default 5000; the model alone scores B and C identically); (3) record the video. |
+| **Main-build baton** | Member 1 |
+| **Next action** | Dress rehearsal on the VM through the SSH tunnel (timed), then the video. Before recording: `python scripts/prewarm_explanations.py` (fills the Granite cache: say in the video that explanation texts are generated once per reason combination and cached), and drop any backlog with `Outbox.skip_pending`. Video must say: Granite explains the "why" in English; the action sentence and the Hindi/Tamil texts are reviewed templates; REVIEW comes from a policy rule next to the model. Then README numbers, make repo public, submit by 09:30. |
 
 ---
 
@@ -64,25 +64,29 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 ### M3 — Decision service
 - [x] API contract tests · [x] Log PII test · [x] Container runs on VM, `/healthz` = s390x (`shieldz-api` live on core 0)
 - [x] p99 < 50 ms @c=1 (got 6.90 ms) and @c=8 (got 21.83 ms) · [x] Outbox row per request (`results/latency_real.json`)
+- [x] Same benchmark with the explainer generating (`results/latency_busy.json`, 2,000+ jobs queued, explainer at 114-180% CPU in `results/z_busy_docker_stats.txt`): p99 11.5 ms @c=1, 23.4 ms @c=8, 0 errors, one outbox row per request
 - Real LinuxONE container benchmark (`make bench TAG=real`):
   - **Concurrency 1**: client p50 1.25 ms, p95 3.39 ms, p99 **6.90 ms** (server p99 1.50 ms), 0 errors
   - **Concurrency 8**: client p50 4.09 ms, p95 14.86 ms, p99 **21.83 ms** (server p99 15.87 ms), 0 errors
 
 ### M4 — Canary Leak Audit (never cut)
 - [x] Scanner variant tests · [x] Positive control 10/10 · [x] Local 0 leaks (`results/leak_scorecard_local.md`: 11 sinks, 2,146,647 bytes scanned with `--live`)
-- [x] VM 0 leaks (`results/leak_scorecard_linuxone.md`) · [x] All sink types scanned (11 sinks, 16,694,276 bytes on s390x with `--live`)
+- [x] VM 0 leaks (`results/leak_scorecard_linuxone.md`) · [x] All sink types scanned. Re-run on s390x with the real Granite worker and the final code: 11 sinks, 4,785,991 bytes, 0 exact / 0 variant / 0 partial, positive control 10/10, negative control 0/1000 hits (`results/leak_scorecard_linuxone.md`; run in a separate runtime dir so it cannot touch the live audit chain)
 
 ### M5 — Granite explainer
-- [x] Guard tests + fuzz (1,000 fuzzed prompts → 0 accepted) · [x] Explanation on VM (Granite 4.0 350M GGUF live on cores 1-2, 11.58 s generation, 0 PII digits)
-- [ ] p99 < 50 ms with explainer busy (CPU pinning is only an argument; needs `make bench TAG=busy` while Granite generates: `scripts/z_evidence.sh`) · [x] Real Granite explanations in outbox · [ ] ≥ 80% of 50 sample jobs `source = granite` + `results/sample_explanations.md` (`scripts/z_evidence.sh`)
+- [x] Guard tests + fuzz (1,000 fuzzed prompts → 0 accepted) · [x] Explanation time on VM: 10.4 s p50, 11.2 s p95 per fresh generation (`results/granite_quality.md`; the template text is shown at once)
+- [x] p99 < 50 ms with explainer busy (see M3) · [x] Leak Audit with real Granite = 0 · [x] `granite_quality.md` has every output next to its template
+- [x] ≥ 80% of fresh prompts written by Granite: 28 of 30 distinct prompts (93%) pass the output and quality guards; the 2 others use the template. **Not** the earlier "50/50 = 100%": those 100 texts were junk loops that passed the old PII-only guard (C-008)
+- [x] 0 `database is locked` lines in either container log after 22k+ requests and 2,000+ jobs. Not run as a dedicated 5,000-job test.
+- Limits to state honestly: Granite 350M base rewrites English only (HI/TA use reviewed templates); the action sentence is always the template's because the model told customers to call "their number"
 
 ### M6 — Audit trail
-- [ ] Verify 10k chain on VM (output not saved: `scripts/z_evidence.sh` writes `results/audit_verify_linuxone.txt`) · [x] Tamper tests (mod, delete, swap detected at exact seq) · [x] RFC 8032 vectors (§7.1 tests 1, 2, 3 pass) · [ ] ≤ 1 ms p99 overhead (`results/audit_append_bench.txt`)
+- [x] Verify chain on VM: 22,062 entries, 183 checkpoint signatures valid (`results/audit_verify_linuxone.txt`) · [x] Tamper tests (mod, delete, swap detected at exact seq) · [x] RFC 8032 vectors (§7.1 tests 1, 2, 3 pass) · [x] `AuditChain.append` p99 0.033 ms on s390x, gate 1 ms (`results/audit_append_bench.txt`)
 
 ### M7 — Demo and integration
 - [x] Demo UI (`service/static/index.html`) wired to real backend endpoints (`/v1/score`, `/v1/explanations`, `/v1/leak-scorecard`, `/v1/audit/verify`)
-- [x] Demo scenarios CLI (`scripts/demo_scenarios.py`: Scenario A BLOCK in 1.6–3.9 ms, Scenario B ALLOW in 1.0 ms, Scenario C: decision NOT recorded; expected REVIEW but the model's REVIEW band is 0.70-0.75, so check `results/z_demo_run.txt`)
-- [ ] Clean `make z-up` → 3 scenarios (A BLOCK, B ALLOW, C REVIEW) → explanations → verify → scorecard 0 (run `bash scripts/z_evidence.sh` on the VM)
+- [x] Demo scenarios on s390x with the real engine (`results/z_demo_run.txt`): A BLOCK 3.9 ms, B ALLOW 1.6 ms, C REVIEW 1.6 ms. C needs the policy rule in `service/decide.py` (the model scores B and C identically, 0.0265). Scenario A uses an exact full drain (balance 485,000): the model keys on `drains_account`.
+- [ ] Clean `make z-up` → 3 scenarios → explanations → verify → scorecard 0: each step verified separately above, not yet as one timed run from an empty runtime dir
 - [ ] Timed dress rehearsal · [x] Feature freeze declared
 
 ### M8 — Submission
@@ -233,6 +237,12 @@ Entry template:
 - State left in: M4 local ✅ done. VM run still needed (M4 gate: "VM 0 leaks"). M6 (audit chain) and M5 (explainer) not yet started.
 - Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
 - Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
+
+### 2026-10-18 (night) IST · Member 1 (Claude Code), also covering Member 3 · VM work over SSH
+- Did: connected to the VM (key was passphrase-protected: loaded into ssh-agent by the user). Fixed `make z-up` (it ran the stub engine and the Granite "mount" would have turned Granite off: the weights live in the L1CC base image). Ran `scripts/z_evidence.sh` and the follow-ups. Evidence files are in `results/`.
+- Found and fixed: (1) all 100 stored Granite texts were degenerate loops, counted as "Granite 100%"; (2) every fresh output told the customer to call "their number" (the scammer's); (3) a FIFO queue left ~2,000 stale jobs ahead of a live demo (now newest-first, `skip_pending`); (4) model scores scenario B and C identically, so REVIEW needs a policy rule; (5) a paid payee counts as known, so repeat demo runs flip decisions (fresh payee per click).
+- State left in: VM runs `c12b386` (later commits are scripts/docs only). Containers up: `shieldz-api` (xgboost, cryptography signer), `shieldz-explainer` (Granite). Backlog dropped; Granite cache holds the demo prompts only if `scripts/prewarm_explanations.py` is run again.
+- Next step: C-008 review by a human; dress rehearsal; video.
 
 ### 2026-10-18 (night) IST · Member 1 (Claude Code), also covering Member 3 · main build · review of Member 3's VM work
 - Did: checked the claims against `results/`. Confirmed: s390x latency (p99 6.90 ms @c=1, 21.83 ms @c=8, outbox one row per request), model metrics (PR-AUC 0.9944, time-based split, thresholds from validation), LinuxONE leak scorecard (`--live`, 11 sinks, 16.7 MB, 0 leaks). Fixed: lint on `main`, the Containerfile lost its Ed25519 build check (`|| true`), restored; merged the Granite mount into `make z-up`.
