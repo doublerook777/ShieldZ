@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 · M1 main-build tasks done on `m1/contracts-privacy` (Member 1, Claude Code) |
+| **Last updated** | 2026-10-17 17:42 IST · M4 Canary Leak Audit done on `m4/proof-canary-leak-audit` (Member 2, Antigravity). C-004 review posted to `main`. |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M0 (Members 2, 3, 4 spikes pending) · M1 main build done, waiting for contract review (C-004) |
-| **Active branches** | main · `m1/contracts-privacy` (Member 1, awaiting review) |
-| **Blockers** | none |
+| **Current milestone** | M4 ✅ local (Member 2) · M1 awaiting freeze (C-004 review done by M2) · M6 + M5 next for Member 2 |
+| **Active branches** | main · `m1/contracts-privacy` (Member 1, awaiting M3/M4 reviews) · `m4/proof-canary-leak-audit` (Member 2, pushed — needs human PR review before merge) |
+| **Blockers** | None. Two non-blocking questions for Member 1: (1) `Explanation.ts` field? (2) What bytes does `AuditCheckpoint.signature` cover? (see C-004 reply) |
 | **Main-build baton** | Member 1 · branch: `m1/contracts-privacy` |
-| **Next action** | M0 now (we're behind schedule). Member 1: repo skeleton · Member 3: VM facts + spikes (signing: try apt `python3-cryptography` first) · Member 2: PaySim + licence · Member 4: pitch statistics |
+| **Next action** | Member 2: start M6 (`audit/chain.py`, `signing.py`, `verify.py`) while waiting for M1 freeze. Member 1: see C-004 for 2 quick questions. Member 3/4: please reply to C-004. |
 
 ---
 
@@ -66,8 +66,8 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 - [ ] p99 < 50 ms @c=1 (got ___) and @c=8 (got ___) · [ ] Outbox row per request
 
 ### M4 — Canary Leak Audit (never cut)
-- [ ] Scanner variant tests · [ ] Positive control 10/10 · [ ] Local 0 leaks
-- [ ] VM 0 leaks (scorecard: ___) · [ ] All sink types scanned
+- [x] Scanner variant tests · [x] Positive control 10/10 · [x] Local 0 leaks (results/leak_scorecard_local.md)
+- [ ] VM 0 leaks (scorecard: ___) · [x] All sink types scanned (6 sinks, 469,919 bytes)
 
 ### M5 — Granite explainer
 - [ ] Guard tests + fuzz · [ ] Explanation p50 on VM (got ___ s)
@@ -122,6 +122,14 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 17:42 IST · Member 2 (Antigravity) · proof build · M4 + C-004
+- Did: Completed full M4 Canary Leak Audit on branch `m4/proof-canary-leak-audit`. Canary generator (1,000 canaries + 1,000 decoys, Indian locale Faker), multi-variant LeakScanner (exact/case-fold/stripped/digits-only/URL/base64/hex/MD5/SHA1/SHA256/partial), SinkRegistry (all 6 ARCHITECTURE §5 sinks + catch-all artifacts walk), LeakScorecard, CLI (`python -m shieldz.leak_audit`), full orchestrator with StubService. Posted contract review in C-004.
+- Evidence: `make test` 15 passed, `make lint` clean, `make leak-audit` → ✅ PASS — 0 leaks, 6 sinks, 469,919 bytes, positive control 10/10, negative control 0/1,000. See `results/leak_scorecard_local.md`.
+- Branch / commit: `m4/proof-canary-leak-audit` pushed (commit `e23a718`). C-004 reply committed to `main` (`a7a900e`).
+- State left in: M4 local ✅ done. VM run still needed (M4 gate: "VM 0 leaks"). M6 (audit chain) and M5 (explainer) not yet started.
+- Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
+- Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
 
 ### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M1
 - Did: skeleton merged to `main` (7393706). On `m1/contracts-privacy`: `contracts.py`, `config.py`, `privacy/{tokenize,strip}.py`, `features/{engineer,history}.py` + `demo_seed.csv`, `tests/golden/features_v1.csv` (200 rows) and `scripts/make_golden_features.py`. `engineer` and `engineer_frame` share one numpy code path.
