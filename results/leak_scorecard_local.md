@@ -1,9 +1,9 @@
 # 🐤 ShieldZ Canary Leak Audit Scorecard
 
 **Result:** ✅ PASS (0 Leaks)  
-**Environment:** `local` (`arm64`)  
-**Git SHA:** `398268daa3`  
-**Timestamp:** `2026-10-17T14:04:43.930431+00:00`  
+**Environment:** `local` (`x86_64`)  
+**Git SHA:** `029b026494`  
+**Timestamp:** `2026-10-17T17:08:34.700368+00:00`  
 
 ---
 
@@ -11,8 +11,8 @@
 | Metric | Value | Requirement | Status |
 |---|---|---|---|
 | **Canary Identities Replayed** | **1,000** | 1,000 | ✅ |
-| **Total Sinks Scanned** | **6** | All registered + catch-all | ✅ |
-| **Total Volume Scanned** | **793,919 bytes** | > 0 | ✅ |
+| **Total Sinks Scanned** | **11** | All registered + catch-all | ✅ |
+| **Total Volume Scanned** | **2,146,647 bytes** | > 0 | ✅ |
 | **Exact PII Leaks** | **0** | **0** | ✅ |
 | **Variant PII Leaks** | **0** | **0** | ✅ |
 | **Partial PII Leaks** | **0** | **0** | ✅ |
@@ -24,9 +24,14 @@
 ### Sinks Scanned
 | Sink Name | Bytes Inspected |
 |---|---|
-| `app_log` | 673,920 bytes |
-| `audit_chain` | 0 bytes |
-| `history_sqlite` | 0 bytes |
-| `http_responses` | 119,999 bytes |
-| `outbox_sqlite` | 0 bytes |
-| `prompt_journal` | 0 bytes |
+| `app_log` | 434,188 bytes |
+| `audit_chain` | 374,575 bytes |
+| `catch_all:audit/checkpoints.jsonl` | 5,499 bytes |
+| `catch_all:history.sqlite-shm` | 32,768 bytes |
+| `catch_all:history.sqlite-wal` | 0 bytes |
+| `catch_all:outbox.sqlite-shm` | 32,768 bytes |
+| `catch_all:outbox.sqlite-wal` | 0 bytes |
+| `history_sqlite` | 106,496 bytes |
+| `http_responses` | 510,288 bytes |
+| `outbox_sqlite` | 438,272 bytes |
+| `prompt_journal` | 211,793 bytes |
