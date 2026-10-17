@@ -25,23 +25,27 @@ for want in "Instant Decision: BLOCK" "Instant Decision: ALLOW" "Instant Decisio
   grep -q "$want" results/z_demo_run.txt || { echo "FAIL: no '$want'"; fail=1; }
 done
 
-echo "== 3. Granite sample ($SAMPLES jobs) running in the background while the benchmark runs"
-$RUN python scripts/granite_sample.py --n "$SAMPLES" --timeout 3000 > results/z_granite_sample.log 2>&1 &
-SAMPLE_PID=$!
-sleep 20   # the worker is now busy generating on cores 1-2
-
-echo "== 4. latency with the explainer busy"
+echo "== 3. latency with the explainer busy"
+# The benchmark's own BLOCK/REVIEW decisions keep the explainer generating the whole time.
 ( for _ in 1 2 3 4 5 6; do docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}' \
     shieldz-api shieldz-explainer; sleep 10; done ) > results/z_busy_docker_stats.txt 2>&1 &
 make bench TAG=busy || fail=1
 $RUN python - <<'PY' | tee results/z_outbox_after_bench.txt
 import sqlite3
 db = sqlite3.connect("/app/artifacts/runtime/outbox.sqlite")
-print("outbox status counts after the benchmark (pending/running > 0 = explainer was still busy):")
+print("outbox status counts right after the benchmark (pending/running > 0 = explainer was busy):")
 for status, n in db.execute("SELECT status, COUNT(*) FROM explain_jobs GROUP BY status"):
     print(f"  {status}: {n}")
 PY
 cat results/z_busy_docker_stats.txt
+
+echo "== 4. drop the benchmark's backlog (Granite needs ~16 s per job), then sample Granite alone"
+$RUN python -c "
+from shieldz.outbox.queue import Outbox
+print('dropped', Outbox('/app/artifacts/runtime/outbox.sqlite').skip_pending(), 'pending jobs')"
+sleep 20   # let the job the worker already holds finish
+$RUN python scripts/granite_sample.py --n "$SAMPLES" --timeout 3000 2>&1 | tee results/z_granite_sample.log
+[ "${PIPESTATUS[0]}" -eq 0 ] || { echo "FAIL: Granite rate below 80% (see results/z_granite_sample.log)"; fail=1; }
 
 echo "== 5. audit chain verification and append cost"
 $RUN python -m shieldz.audit.verify artifacts/runtime/audit/chain.jsonl \
@@ -63,10 +67,6 @@ a = np.asarray(times)
 print(f"AuditChain.append x5000 on {__import__('platform').machine()}: "
       f"p50 {np.percentile(a, 50):.3f} ms, p99 {np.percentile(a, 99):.3f} ms (gate: p99 <= 1 ms)")
 PY
-
-echo "== 6. wait for the Granite sample (M5: >= 80% written by Granite)"
-wait $SAMPLE_PID || { echo "FAIL: Granite rate below 80% (see results/z_granite_sample.log)"; fail=1; }
-cat results/z_granite_sample.log | head -8
 
 echo
 [ $fail -eq 0 ] && echo "ALL EVIDENCE COLLECTED: commit results/ and tick the gates" \

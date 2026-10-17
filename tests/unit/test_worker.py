@@ -137,3 +137,14 @@ def test_load_generator():
     assert load_generator("template") is None
     with pytest.raises(ValueError):
         load_generator("nope")
+
+
+def test_newest_job_is_explained_first_and_backlog_can_be_dropped(box):
+    """After a burst the payment in front of the user must not wait behind hours of old jobs."""
+    for i in range(5):
+        box.enqueue(job(i))
+    assert box.claim_next().decision_id == job(4).decision_id
+    assert box.claim_next().decision_id == job(3).decision_id
+    assert box.skip_pending() == 3  # jobs 0-2 are dropped, the two claimed ones stay `running`
+    assert box.count(PENDING) == 0 and box.count(RUNNING) == 2 and box.count("skipped") == 3
+    assert box.claim_next() is None

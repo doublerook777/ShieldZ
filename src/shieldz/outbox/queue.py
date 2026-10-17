@@ -86,13 +86,17 @@ class Outbox:
         return self._conn().execute(sql, args).fetchone()[0]
 
     def claim_next(self) -> ExplainJob | None:
-        """Atomically move the oldest pending job to `running` and return it."""
+        """Atomically move the NEWEST pending job to `running` and return it.
+
+        Newest first, because Granite writes one explanation every ~16 s: after a burst, a
+        first-in-first-out queue would answer the payment in front of the user hours late, while an
+        old backlog can wait (or be dropped with `skip_pending`)."""
         conn = self._conn()
         conn.execute("BEGIN IMMEDIATE")
         try:
             row = conn.execute(
                 "SELECT id, decision_id, decision, risk_level, reason_codes, levels, language"
-                " FROM explain_jobs WHERE status = ? ORDER BY id LIMIT 1",
+                " FROM explain_jobs WHERE status = ? ORDER BY id DESC LIMIT 1",
                 (PENDING,),
             ).fetchone()
             if row is None:
@@ -119,6 +123,14 @@ class Outbox:
         """After a worker crash: jobs left `running` go back to `pending`. Single-worker only."""
         cur = self._conn().execute(
             "UPDATE explain_jobs SET status = ? WHERE status = ?", (PENDING, RUNNING)
+        )
+        return cur.rowcount
+
+    def skip_pending(self) -> int:
+        """Drop the backlog (e.g. before a demo): pending jobs become `skipped`. Their decisions
+        keep the instant template-free result; no explanation is written for them."""
+        cur = self._conn().execute(
+            "UPDATE explain_jobs SET status = ? WHERE status = ?", (SKIPPED, PENDING)
         )
         return cur.rowcount
 

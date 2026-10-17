@@ -93,7 +93,7 @@ def main(args: argparse.Namespace) -> int:
         f"- Sample jobs: {len(scored)}; written by Granite: {len(granite)} ({rate:.0%}); "
         f"gate: ≥ {GATE_RATE:.0%}",
         f"- Time to first (template) explanation: {first}",
-        f"- Time to Granite explanation (queued behind earlier jobs): "
+        f"- Time to Granite explanation (the worker takes the newest job first): "
         f"{pct([j['granite_s'] for j in granite])}",
         "",
         "## One per scenario",
