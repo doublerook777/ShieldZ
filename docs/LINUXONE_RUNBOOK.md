@@ -127,7 +127,7 @@ docker ps; docker stats --no-stream
 curl -s localhost:8000/healthz
 ```
 - `make z-up` computes the core split from `nproc` as above, so it never asks for cores the VM doesn't have. Leave the `notebook` container unpinned, but shut down its kernels during benchmarks.
-- `make z-up` mounts the Granite weights (`GRANITE_GGUF`, default `/home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf`) read-only into the explainer at `/models/granite.gguf` and sets `SHIELDZ_EXPLAINER=granite`. If the file isn't readable it prints a warning and the explainer runs template-only. Check with `docker logs shieldz-explainer` (a `worker_start` line, then `explained ... source=granite` after a BLOCK) and `docker exec shieldz-explainer ls -l /models`. The container user is uid 1000, so the file must be world-readable (`chmod a+r`).
+- The Granite weights are **inside the L1CC base image** (`/home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf`; they are not on the VM host), so `make z-up` just sets `SHIELDZ_EXPLAINER=granite` and the explainer finds them. To use other weights: `make z-up GRANITE_GGUF=/host/path/file.gguf` (mounted read-only at `/models/granite.gguf`). Check: `docker logs shieldz-explainer` shows `worker_start`, then `explained ... source=granite` after a BLOCK (about 16 s later). The explainer falls back to the template if `llama_cpp` or the file is missing, so always check `source`.
 - If a container won't start with seccomp errors, add `--security-opt seccomp=unconfined` (the official README mentions this).
 - Stop: `docker rm -f shieldz-api shieldz-explainer` (`make z-down`).
 - Because of `--network host`, the API must bind `127.0.0.1`, **not** `0.0.0.0`. Otherwise it would be reachable from the internet if anyone opens port 8000 in the firewall.

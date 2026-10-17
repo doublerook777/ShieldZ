@@ -3,8 +3,9 @@
 
 PY ?= .venv/bin/python
 IMAGE ?= shieldz:latest
-# Granite weights on the VM host (Member 3's M0 spike). Mounted read-only into the explainer.
-GRANITE_GGUF ?= /home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf
+# Granite weights: the L1CC base image already contains /home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf,
+# so the explainer finds them without a mount. Set GRANITE_GGUF to a host file to use other weights.
+GRANITE_GGUF ?=
 # Cores for the benchmark client: everything except the api's core 0 (nproc = 3 on our VM)
 BENCH_CPUS ?= 1-2
 # Path of the repo as the Jupyter container sees it
@@ -50,9 +51,9 @@ z-up: z-build
 	docker rm -f shieldz-api shieldz-explainer >/dev/null 2>&1 || true; \
 	docker run -d --name shieldz-api --network host $$API \
 	  -v $(CURDIR)/artifacts:/app/artifacts -v $(CURDIR)/results:/app/results:ro $(IMAGE) api; \
-	if [ -r "$(GRANITE_GGUF)" ]; then \
-	  LLM="-v $(GRANITE_GGUF):/models/granite.gguf:ro -e SHIELDZ_GRANITE_PATH=/models/granite.gguf -e SHIELDZ_EXPLAINER=granite"; \
-	else echo "WARNING: $(GRANITE_GGUF) not readable: explainer runs template-only"; LLM=""; fi; \
+	LLM="-e SHIELDZ_EXPLAINER=granite"; \
+	if [ -n "$(GRANITE_GGUF)" ]; then \
+	  LLM="$$LLM -v $(GRANITE_GGUF):/models/granite.gguf:ro -e SHIELDZ_GRANITE_PATH=/models/granite.gguf"; fi; \
 	docker run -d --name shieldz-explainer --network host $$EXP $$LLM \
 	  -v $(CURDIR)/artifacts:/app/artifacts $(IMAGE) explainer; \
 	docker ps --filter name=shieldz; \
