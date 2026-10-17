@@ -18,7 +18,9 @@ RUN if command -v dnf >/dev/null 2>&1; then \
     elif command -v apt-get >/dev/null 2>&1; then \
         apt-get update && apt-get install -y --no-install-recommends python3-cryptography && \
         echo /usr/lib/python3/dist-packages > "$(/opt/venv/bin/python -c 'import site; print(site.getsitepackages()[0])')/system-dist-packages.pth"; \
-    fi || true
+    else echo "no dnf or apt-get: cannot install python3-cryptography" >&2; exit 1; \
+    fi \
+    && /opt/venv/bin/python -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey as K; K.generate().sign(b'x')"
 
 COPY pyproject.toml pytest.ini ./
 COPY src/ src/
