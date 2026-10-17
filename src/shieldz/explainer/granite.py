@@ -14,6 +14,21 @@ DEFAULT_MODEL_PATH = Path(
 )
 
 
+# Generation time is linear in tokens (3.8 tok/s on the VM). Two or three short sentences fit in
+# about 48 tokens; 80 made every explanation ~21 s.
+DEFAULT_MAX_TOKENS = int(os.environ.get("SHIELDZ_LLM_MAX_TOKENS", "48"))
+SENTENCE_END = ".!?\u0964"  # \u0964 is the Devanagari danda used in Hindi
+
+
+def trim_to_sentence(text: str) -> str:
+    """A token cap can stop mid-sentence: cut back to the last full sentence if there is one."""
+    text = text.strip()
+    if not text or text[-1] in SENTENCE_END:
+        return text
+    cut = max(text.rfind(c) for c in SENTENCE_END)
+    return text[: cut + 1] if cut >= 10 else text
+
+
 class GraniteGenerator:
     """Granite LLM wrapper for generating scam/fraud warning explanations."""
 
@@ -51,12 +66,17 @@ class GraniteGenerator:
             verbose=False,
         )
 
-    def generate(self, prompt: str, max_tokens: int = 80) -> str:
-        """Generate calm explanation from validated prompt."""
+    @property
+    def cache_tag(self) -> str:
+        """Part of the prompt-cache key: changing any of these must not serve old text."""
+        return f"{self.name}|max{DEFAULT_MAX_TOKENS}|t0"
+
+    def generate(self, prompt: str, max_tokens: int | None = None) -> str:
+        """Generate a calm explanation from a validated prompt (temperature 0: reproducible)."""
         response = self.llm(
             prompt,
-            max_tokens=max_tokens,
-            temperature=0.2,
+            max_tokens=max_tokens or DEFAULT_MAX_TOKENS,
+            temperature=0.0,
             stop=["\n\n\n", "Decision:", "User:", "###", "Risk:"],
         )
-        return response["choices"][0]["text"].strip()
+        return trim_to_sentence(response["choices"][0]["text"])

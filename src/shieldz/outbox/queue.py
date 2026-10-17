@@ -37,6 +37,13 @@ CREATE TABLE IF NOT EXISTS explanations (
     language TEXT NOT NULL,
     ts TEXT NOT NULL
 );
+-- Granite text by hash of the validated prompt. The prompt is a fixed template plus enum values,
+-- so the key and the text carry no personal data. Lives in this file, a registered Leak Audit sink.
+CREATE TABLE IF NOT EXISTS llm_cache (
+    key TEXT PRIMARY KEY,
+    text TEXT NOT NULL,
+    ts TEXT NOT NULL
+);
 """
 
 
@@ -125,6 +132,19 @@ class Outbox:
             "UPDATE explain_jobs SET status = ? WHERE status = ?", (PENDING, RUNNING)
         )
         return cur.rowcount
+
+    def get_cached(self, key: str) -> str | None:
+        row = self._conn().execute("SELECT text FROM llm_cache WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    def put_cached(self, key: str, text: str) -> None:
+        self._conn().execute(
+            "INSERT OR REPLACE INTO llm_cache (key, text, ts) VALUES (?, ?, ?)",
+            (key, text, now_utc()),
+        )
+
+    def clear_cache(self) -> int:
+        return self._conn().execute("DELETE FROM llm_cache").rowcount
 
     def skip_pending(self) -> int:
         """Drop the backlog (e.g. before a demo): pending jobs become `skipped`. Their decisions

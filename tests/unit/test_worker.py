@@ -148,3 +148,55 @@ def test_newest_job_is_explained_first_and_backlog_can_be_dropped(box):
     assert box.skip_pending() == 3  # jobs 0-2 are dropped, the two claimed ones stay `running`
     assert box.count(PENDING) == 0 and box.count(RUNNING) == 2 and box.count("skipped") == 3
     assert box.claim_next() is None
+
+
+def test_same_prompt_is_generated_once_then_served_from_the_cache(box, tmp_path):
+    llm = FakeLLM()
+    w = worker(box, tmp_path, llm)
+    box.enqueue(job(1))
+    box.enqueue(job(2))  # a different decision with the same reasons/language: the same prompt
+    w.run_once()
+    w.run_once()
+    assert len(llm.prompts) == 1
+    texts = {box.get_explanation(job(i).decision_id).text for i in (1, 2)}
+    assert texts == {GOOD}
+    assert box.get_explanation(job(2).decision_id).source == ExplanationSource.GRANITE
+
+
+def test_cache_key_depends_on_prompt_and_model_settings(box, tmp_path):
+    from shieldz.explainer.worker import cache_key
+
+    class Tagged(FakeLLM):
+        cache_tag = "fake|max48"
+
+    assert cache_key(FakeLLM(), "a") != cache_key(FakeLLM(), "b")
+    assert cache_key(FakeLLM(), "a") != cache_key(Tagged(), "a")
+    assert cache_key(Tagged(), "a") == cache_key(Tagged(), "a")
+
+
+def test_rejected_output_is_never_cached_and_cached_text_is_guarded_again(box, tmp_path):
+    bad = FakeLLM(reply="Send it to account 123456789012 now")
+    w = worker(box, tmp_path, bad)
+    box.enqueue(job(1))
+    w.run_once()
+    assert box.get_explanation(job(1).decision_id).source == ExplanationSource.TEMPLATE
+    assert box._conn().execute("SELECT COUNT(*) FROM llm_cache").fetchone()[0] == 0
+
+    from shieldz.explainer.prompt import build_prompt
+    from shieldz.explainer.worker import cache_key
+
+    llm = FakeLLM()
+    box.put_cached(cache_key(llm, build_prompt(job(2))), "Call 9876543210123 now")  # poisoned
+    box.enqueue(job(2))
+    worker(box, tmp_path, llm).run_once()
+    assert box.get_explanation(job(2).decision_id).source == ExplanationSource.TEMPLATE
+    assert llm.prompts == []  # it did not regenerate; it fell back, and the guard caught it
+
+
+def test_trim_to_sentence():
+    from shieldz.explainer.granite import trim_to_sentence
+
+    assert trim_to_sentence("Pause now. Call your bank. Do not hu") == "Pause now. Call your bank."
+    assert trim_to_sentence("Pause now. Call your bank.") == "Pause now. Call your bank."
+    assert trim_to_sentence("कृपया रुकें। अपने बैंक को कॉल") == "कृपया रुकें।"
+    assert trim_to_sentence("no full sentence here") == "no full sentence here"

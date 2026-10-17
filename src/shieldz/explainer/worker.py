@@ -10,6 +10,7 @@ is the real one; without it (SHIELDZ_EXPLAINER=template) the worker is template-
 
 from __future__ import annotations
 
+import hashlib
 import os
 import signal
 import threading
@@ -37,6 +38,12 @@ class Generator(Protocol):
         ...
 
 
+def cache_key(generator: Generator, prompt: str) -> str:
+    """Same model settings and same validated prompt always give the same text (temperature 0)."""
+    tag = getattr(generator, "cache_tag", generator.name)
+    return hashlib.sha256(f"{tag}\n{prompt}".encode()).hexdigest()
+
+
 class Worker:
     def __init__(
         self,
@@ -58,12 +65,18 @@ class Worker:
             log_event("explained", decision_id=job.decision_id, source=final.source.value)
             return final
 
-        prompt, text, ok = build_prompt(job), "", False
+        prompt, text, ok, cached = build_prompt(job), "", False, False
         try:
             ok, why = validate_prompt(prompt, job)
             if ok:
-                text = self.generator.generate(prompt).strip()
-                ok, why = validate_output(text)
+                key = cache_key(self.generator, prompt)
+                text = self.outbox.get_cached(key) or ""
+                cached = bool(text)
+                if not cached:
+                    text = self.generator.generate(prompt).strip()
+                ok, why = validate_output(text)  # cached text is guarded again on the way out
+                if ok and not cached:
+                    self.outbox.put_cached(key, text)
         except Exception as exc:  # LLM trouble must never lose the job
             ok, why = False, type(exc).__name__
             log_event("generator_error", decision_id=job.decision_id, error_type=why)
@@ -81,7 +94,7 @@ class Worker:
             "explained",
             decision_id=job.decision_id,
             source=final.source.value,
-            status="ok" if ok else "fallback",
+            status=("cached" if cached else "ok") if ok else "fallback",
         )
         return final
 
