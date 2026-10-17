@@ -33,3 +33,19 @@ def thresholds_file() -> Path:
 
 def pepper_file() -> Path:
     return keys_dir() / "pepper"
+
+
+def audit_chain_file() -> Path:
+    return runtime_dir() / "audit" / "chain.jsonl"
+
+
+def audit_checkpoints_file() -> Path:
+    return runtime_dir() / "audit" / "checkpoints.jsonl"
+
+
+def audit_private_key() -> Path:
+    return keys_dir() / "audit_key.pem"
+
+
+def audit_public_key() -> Path:
+    return keys_dir() / "audit_pubkey.pem"

@@ -15,6 +15,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from shieldz import config
+from shieldz.audit import AuditChain, CheckpointSigner
 from shieldz.config import runtime_dir
 from shieldz.contracts import (
     Decision,
@@ -67,19 +69,38 @@ class Pipeline:
     tokenizer: Tokenizer
     history: History
     outbox: Outbox
-    audit_append: AuditAppend | None = None  # M6 plugs the hash chain in here
+    audit_append: AuditAppend | None = None
+    signer: CheckpointSigner | None = None  # background checkpoint signing (never in the request)
 
     @classmethod
     def from_env(cls) -> Pipeline:
         tokenizer = default_tokenizer()
         runtime = runtime_dir()
+        chain = AuditChain(config.audit_chain_file())
         return cls(
             engine=load_engine(),
             thresholds=load_thresholds(),
             tokenizer=tokenizer,
             history=build_history(tokenizer, runtime / "history.sqlite"),
             outbox=Outbox(runtime / "outbox.sqlite"),
+            audit_append=lambda d: chain.append(
+                d.decision_id, d.decision, d.risk_level, d.reason_codes, d.model_version
+            ),
+            signer=CheckpointSigner(
+                chain,
+                config.audit_checkpoints_file(),
+                config.audit_private_key(),
+                config.audit_public_key(),
+            ),
         )
+
+    def start(self) -> None:
+        if self.signer is not None:
+            self.signer.start()
+
+    def close(self) -> None:
+        if self.signer is not None:
+            self.signer.stop()
 
     def handle(self, request: PaymentRequest) -> Decision:
         """Entry point: the request is handed to `strip()` and never touched again (I1)."""
@@ -109,7 +130,10 @@ class Pipeline:
             server_ms=0.0,
         )
         if self.audit_append is not None:
-            self.audit_append(decision)
+            try:
+                self.audit_append(decision)
+            except OSError as exc:  # availability over audit: say so loudly instead of failing
+                log_event("audit_error", decision_id=decision_id, error_type=type(exc).__name__)
         try:
             self.outbox.enqueue(
                 ExplainJob(

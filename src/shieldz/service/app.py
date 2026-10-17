@@ -7,6 +7,7 @@ logging goes through `privacy.redact_log` only.
 
 from __future__ import annotations
 
+import importlib.util
 import platform
 from contextlib import asynccontextmanager
 
@@ -32,8 +33,13 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
         else:
             app.state.pipeline = pipeline
         p: Pipeline = app.state.pipeline
+        p.start()
+        if p.signer is not None:  # the pure-Python fallback signer stalls the api for ~250 ms
+            fast = importlib.util.find_spec("cryptography") is not None
+            log_event("signer_backend", status="cryptography" if fast else "pure-python")
         log_event("startup", engine=p.engine.name, model_version=p.engine.version)
         yield
+        p.close()
 
     app = FastAPI(title="ShieldZ", lifespan=lifespan, docs_url=None, redoc_url=None)
 

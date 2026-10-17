@@ -2,4 +2,7 @@
 -r z-preinstalled.txt
 -r z-extra.txt
 ruff==0.17.1
+# Laptop only: s390x has no wheel and uses apt python3-cryptography (ADR D6). Without it the audit
+# signer falls back to pure Python (~250 ms per signature, which stalls the api's GIL).
+cryptography==50.0.2
 # Optional (not needed for make test): llama-cpp-python for trying Granite locally.

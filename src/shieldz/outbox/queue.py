@@ -115,12 +115,21 @@ class Outbox:
             language=language,
         )
 
+    def requeue_running(self) -> int:
+        """After a worker crash: jobs left `running` go back to `pending`. Single-worker only."""
+        cur = self._conn().execute(
+            "UPDATE explain_jobs SET status = ? WHERE status = ?", (PENDING, RUNNING)
+        )
+        return cur.rowcount
+
     def mark(self, decision_id: str, status: str) -> None:
         self._conn().execute(
             "UPDATE explain_jobs SET status = ? WHERE decision_id = ?", (status, decision_id)
         )
 
-    def put_explanation(self, explanation: Explanation) -> None:
+    def put_explanation(self, explanation: Explanation, done: bool = True) -> None:
+        """Store (or replace) the explanation. `done=False` keeps the job `running`, so a worker
+        can publish the template text first and replace it with the LLM text later."""
         self._conn().execute(
             "INSERT OR REPLACE INTO explanations (decision_id, text, source, language, ts)"
             " VALUES (?, ?, ?, ?, ?)",
@@ -132,7 +141,8 @@ class Outbox:
                 explanation.ts,
             ),
         )
-        self.mark(explanation.decision_id, DONE)
+        if done:
+            self.mark(explanation.decision_id, DONE)
 
     def get_explanation(self, decision_id: str) -> Explanation | None:
         row = (

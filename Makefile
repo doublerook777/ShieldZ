@@ -65,4 +65,5 @@ bench:
 	  --out $(JUPYTER_REPO)/results/latency_$(TAG).json
 
 verify:
-	$(PY) -m shieldz.audit.verify artifacts/runtime/audit/chain.jsonl
+	$(PY) -m shieldz.audit.verify artifacts/runtime/audit/chain.jsonl \
+	  --checkpoints artifacts/runtime/audit/checkpoints.jsonl --pubkey artifacts/keys/audit_pubkey.pem

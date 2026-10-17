@@ -258,3 +258,44 @@ def test_sqlite_history_survives_restart_without_double_seeding(tmp_path):
     token = tk.token("DEMO-ELECTRICITY-BOARD")
     assert first.count(token) == second.count(token) == 5201
     assert isinstance(second, SqliteHistoryStore)
+
+
+def test_audit_chain_and_signed_checkpoints_cover_every_decision(tmp_path):
+    from shieldz.audit import AuditChain, CheckpointSigner, verify_audit_trail
+
+    chain_file, cps = tmp_path / "audit" / "chain.jsonl", tmp_path / "audit" / "checkpoints.jsonl"
+    priv, pub = tmp_path / "keys" / "k.pem", tmp_path / "keys" / "k_pub.pem"
+    chain = AuditChain(chain_file)
+    tokenizer = Tokenizer(PEPPER)
+    pipeline = Pipeline(
+        engine=StubEngine(),
+        thresholds=DEFAULT_THRESHOLDS,
+        tokenizer=tokenizer,
+        history=build_history(tokenizer),
+        outbox=Outbox(tmp_path / "outbox.sqlite"),
+        audit_append=lambda d: chain.append(
+            d.decision_id, d.decision, d.risk_level, d.reason_codes, d.model_version
+        ),
+        signer=CheckpointSigner(chain, cps, priv, pub),
+    )
+    with TestClient(create_app(pipeline)) as client:
+        for i in range(12):
+            body = payment(amount=100 + i, payer_balance_before=100 + i) if i % 2 else payment()
+            assert client.post("/v1/score", json=body).status_code == 200
+    raw = chain_file.read_text()
+    assert len(raw.splitlines()) == 12
+    for secret in ("Savitri", "9876501234", "ACC-7731", "CANARY", "48250"):
+        assert secret not in raw
+    ok, message, _ = verify_audit_trail(chain_file, cps, pub)
+    assert ok, message
+    assert "checkpoint" in message
+
+
+def test_audit_failure_does_not_fail_the_decision(env):
+    client, pipeline, *_ = env
+
+    def broken(decision):
+        raise OSError("disk full")
+
+    pipeline.audit_append = broken
+    assert client.post("/v1/score", json=payment()).status_code == 200
