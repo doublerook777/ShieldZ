@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-10-17T12:04:18.978841+00:00",
+  "environment": "local",
+  "platform": "arm64",
+  "git_sha": "918581768cc4bac3e0b7e6c3d45acb956c0256b3",
+  "records_replayed": 1000,
+  "sinks_scanned": 6,
+  "total_bytes_scanned": 469919,
+  "bytes_per_sink": {
+    "app_log": 349920,
+    "audit_chain": 0,
+    "prompt_journal": 0,
+    "outbox_sqlite": 0,
+    "history_sqlite": 0,
+    "http_responses": 119999
+  },
+  "positive_control_planted": 10,
+  "positive_control_found": 10,
+  "positive_control_passed": true,
+  "negative_control_decoys": 1000,
+  "negative_control_hits": 0,
+  "negative_control_passed": true,
+  "leaks_exact": 0,
+  "leaks_variant": 0,
+  "leaks_partial": 0,
+  "status": "PASS",
+  "findings": []
+}
