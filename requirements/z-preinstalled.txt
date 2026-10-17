@@ -1,0 +1,9 @@
+# Versions that ship in the L1CC Jupyter image (/opt/venv, Python 3.12).
+# The laptop venv is pinned to these so parity tests mean something.
+# Not installed on laptops: torch, tensorflow, transformers, llama_cpp_python, ibm-zdnn-plugin.
+xgboost==3.4.1
+numpy==2.0.2
+pandas==3.0.6
+scikit-learn==1.9.0
+onnx==1.22.0
+httpx==0.28.1

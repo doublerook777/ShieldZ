@@ -1,0 +1,5 @@
+# Laptop venv: uv venv --python 3.12 && uv pip install -r requirements/local-dev.txt
+-r z-preinstalled.txt
+-r z-extra.txt
+ruff==0.17.1
+# Optional (not needed for make test): llama-cpp-python for trying Granite locally.

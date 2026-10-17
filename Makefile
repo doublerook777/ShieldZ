@@ -1,0 +1,62 @@
+# ShieldZ — see docs/LINUXONE_RUNBOOK.md for the z-* targets (they run on the VM only).
+.PHONY: test lint fmt leak-audit doctor z-doctor z-build z-gate z-up z-down bench verify
+
+PY ?= .venv/bin/python
+IMAGE ?= shieldz:latest
+# Path of the repo as the Jupyter container sees it
+JUPYTER_REPO ?= /home/ibm-user/shared/ShieldZ
+
+test:
+	$(PY) -m pytest -m "not z and not llm"
+
+lint:
+	$(PY) -m ruff check .
+	$(PY) -m ruff format --check .
+
+fmt:
+	$(PY) -m ruff format .
+	$(PY) -m ruff check --fix .
+
+doctor:
+	$(PY) scripts/z_doctor.py --local
+
+leak-audit:
+	$(PY) -m shieldz.leak_audit --env local
+
+# --- VM only -----------------------------------------------------------------
+
+# M0: check the Jupyter container's environment (no image needed yet)
+z-doctor:
+	docker exec notebook /opt/venv/bin/python $(JUPYTER_REPO)/scripts/z_doctor.py
+
+z-build:
+	docker build -t $(IMAGE) -f containers/Containerfile .
+
+z-gate: z-build
+	docker run --rm -v $(CURDIR)/artifacts:/app/artifacts -v $(CURDIR)/results:/app/results \
+	  $(IMAGE) bash -c "python scripts/z_doctor.py && python -m pytest"
+
+# Core split is computed from nproc so we never ask for cores that don't exist (runbook §5)
+z-up: z-build
+	@N=$$(nproc); \
+	if   [ $$N -ge 4 ]; then API="--cpuset-cpus 0-1"; EXP="--cpuset-cpus 2-$$((N-1))"; \
+	elif [ $$N -eq 3 ]; then API="--cpuset-cpus 0";   EXP="--cpuset-cpus 1-2"; \
+	elif [ $$N -eq 2 ]; then API="--cpuset-cpus 0";   EXP="--cpuset-cpus 1"; \
+	else API=""; EXP="--cpus 0.5"; fi; \
+	docker rm -f shieldz-api shieldz-explainer >/dev/null 2>&1 || true; \
+	docker run -d --name shieldz-api --network host $$API \
+	  -v $(CURDIR)/artifacts:/app/artifacts $(IMAGE) api; \
+	docker run -d --name shieldz-explainer --network host $$EXP \
+	  -v $(CURDIR)/artifacts:/app/artifacts $(IMAGE) explainer; \
+	docker ps --filter name=shieldz; \
+	sleep 3; curl -s localhost:8000/healthz; echo
+
+z-down:
+	docker rm -f shieldz-api shieldz-explainer
+
+bench:
+	docker exec shieldz-api python scripts/bench_latency.py --n 5000 --warmup 500 \
+	  --concurrency 1 8 --out results/latency_$(TAG).json
+
+verify:
+	$(PY) -m shieldz.audit.verify artifacts/runtime/audit/chain.jsonl

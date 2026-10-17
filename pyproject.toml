@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shieldz"
+version = "0.1.0"
+description = "Privacy-preserving, real-time scam and fraud defense on IBM LinuxONE"
+requires-python = ">=3.12,<3.13"
+# Runtime dependencies are pinned in requirements/*.txt (they mirror the s390x image).
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+shieldz = ["service/static/*", "features/demo_seed.csv"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

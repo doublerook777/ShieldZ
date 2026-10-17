@@ -1,0 +1,9 @@
+# Installed on top of the L1CC image (containers/Containerfile).
+# Every entry needs an s390x check first: python scripts/check_deps.py <pkg>
+# Direct dependencies only; transitive ones float. Record results in docs/DECISIONS.md.
+fastapi==0.143.3
+uvicorn==0.54.0
+pydantic==2.14.1
+faker==40.43.0
+pytest==9.1.1
+onnxmltools==1.16.0
