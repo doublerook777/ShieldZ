@@ -630,7 +630,11 @@
       document.getElementById('payer_account').value = data.payer_account;
       document.getElementById('payer_balance_before').value = data.payer_balance_before;
       document.getElementById('payee_name').value = data.payee_name;
-      document.getElementById('payee_account').value = data.payee_account;
+      // Once paid, a payee counts as "known" and the same story would score lower the second time.
+      // Give every click a fresh payee, except the seeded utility whose long history is the point.
+      const seeded = data.payee_account === 'DEMO-ELECTRICITY-BOARD';
+      document.getElementById('payee_account').value =
+        seeded ? data.payee_account : `${data.payee_account}-${Math.random().toString(16).slice(2, 6)}`;
       document.getElementById('amount').value = data.amount;
       document.getElementById('tx_type').value = data.tx_type;
       document.getElementById('memo').value = data.memo;

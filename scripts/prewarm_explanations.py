@@ -19,6 +19,7 @@ import argparse
 import copy
 import sys
 import time
+import uuid
 
 import httpx
 
@@ -42,7 +43,11 @@ def main(args: argparse.Namespace) -> int:
     for sc in demo_scenarios.SCENARIOS.values():
         for lang in LANGUAGES:
             for shape, payment in (("cli", sc.payment), ("ui", ui_shape(sc.payment))):
-                body = client.post("/v1/score", json=payment | {"language": lang}).json()
+                payee = payment["payee_account"]
+                if payee != demo_scenarios.SEEDED_PAYEE:  # a payee paid once counts as known
+                    payee += f"-{uuid.uuid4().hex[:4]}"
+                posted = payment | {"language": lang, "payee_account": payee}
+                body = client.post("/v1/score", json=posted).json()
                 label = f"{sc.id}/{lang}/{shape}: {body['decision']}"
                 if body["decision"] == "ALLOW":
                     print(f"  {label} (no explanation needed)")

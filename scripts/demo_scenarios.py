@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -59,6 +60,8 @@ class DemoScenario:
             data["timestamp"] = datetime.fromisoformat(data["timestamp"])
         return PaymentRequest(**data)
 
+
+SEEDED_PAYEE = "DEMO-ELECTRICITY-BOARD"  # history seed: 5,000+ prior payments
 
 SCENARIOS: dict[str, DemoScenario] = {
     "digital_arrest": DemoScenario(
@@ -284,7 +287,10 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
         amount_txt = f"{sc.payment['amount']} INR ({sc.payment['tx_type']})"
         print(f"  Sending: {amount_txt} to {sc.payment['payee_name']}...")
 
-        resp = client.post("/v1/score", json=sc.payment)
+        payment = dict(sc.payment)
+        if payment["payee_account"] != SEEDED_PAYEE:  # a payee we have paid once counts as known
+            payment["payee_account"] += f"-{uuid.uuid4().hex[:4]}"
+        resp = client.post("/v1/score", json=payment)
         if resp.status_code != 200:
             print(f"  [ERROR] Status {resp.status_code}: {resp.text}")
             continue
