@@ -51,9 +51,12 @@ class Outbox:
         """One connection per thread (the api runs handlers in a thread pool)."""
         conn = getattr(self._local, "conn", None)
         if conn is None:
-            conn = sqlite3.connect(self.path, timeout=5.0, isolation_level=None)
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=5000")
+            conn = sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
+            conn.execute("PRAGMA busy_timeout=10000")
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.OperationalError:
+                pass
             conn.execute("PRAGMA synchronous=NORMAL")
             self._local.conn = conn
         return conn
