@@ -4,7 +4,7 @@
 PY ?= .venv/bin/python
 IMAGE ?= shieldz:latest
 # Path of the repo as the Jupyter container sees it
-JUPYTER_REPO ?= /home/ibm-user/shared/ShieldZ
+JUPYTER_REPO ?= /home/jovyan/shared/ShieldZ
 
 test:
 	$(PY) -m pytest -m "not z and not llm"

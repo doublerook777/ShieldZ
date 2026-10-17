@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-10-17T14:10:40.214818+00:00",
+  "environment": "linuxone",
+  "platform": "s390x",
+  "git_sha": "287e4f2cb44efb8712a04c87237348596bc16203",
+  "records_replayed": 1000,
+  "sinks_scanned": 6,
+  "total_bytes_scanned": 281999,
+  "bytes_per_sink": {
+    "app_log": 162000,
+    "audit_chain": 0,
+    "prompt_journal": 0,
+    "outbox_sqlite": 0,
+    "history_sqlite": 0,
+    "http_responses": 119999
+  },
+  "positive_control_planted": 10,
+  "positive_control_found": 10,
+  "positive_control_passed": true,
+  "negative_control_decoys": 1000,
+  "negative_control_hits": 0,
+  "negative_control_passed": true,
+  "leaks_exact": 0,
+  "leaks_variant": 0,
+  "leaks_partial": 0,
+  "status": "PASS",
+  "findings": []
+}

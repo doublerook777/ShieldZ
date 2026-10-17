@@ -29,17 +29,15 @@ Code and unit tests run on laptops. Every milestone gate also runs on the LinuxO
 **Why:** fast iteration locally, and s390x surprises get caught within hours. The judges reward real use of LinuxONE.
 **Rejected:** "build everything locally, upload at the end" (s390x risk too late); "develop only in Jupyter on the VM" (slow, hard to test, notebooks don't merge in git).
 
-## D2 — Inference engine: XGBoost native on Z; ONNX is an export only · *Pending M0 (Snap ML part)*
-The decision service scores with XGBoost `Booster.inplace_predict` (preinstalled, `nthread=1` for single rows). If the M0 spike shows that Snap ML imports on the VM, M2 benchmarks Snap ML (importing the XGBoost JSON model) against XGBoost and keeps the faster one. The model is also exported to ONNX (onnxmltools) and checked with `onnx.checker` to show portability ("train anywhere, deploy on Z").
-**Changed from the original idea**, which served ONNX via ONNX Runtime. onnxruntime has no s390x distribution on PyPI.
-**Would revisit if:** an s390x onnxruntime build turns out to be available in the image or via dnf.
+## D2 — Inference engine: XGBoost native on Z; ONNX is an export only · *Accepted*
+The decision service scores with XGBoost `Booster.inplace_predict` (preinstalled, `nthread=1` for single rows). The M0 spike confirmed that Snap ML (`snapml==1.17.2`) installs and imports cleanly on s390x with `libsnapmllocal3_zdnn` accelerator support. M2 will benchmark Snap ML against XGBoost and keep the faster one. The model is also exported to ONNX (onnxmltools) and checked with `onnx.checker` to show portability ("train anywhere, deploy on Z").
 
 ## D3 — Explanations: XGBoost `pred_contribs` instead of the `shap` package · *Accepted*
 `booster.predict(dmatrix, pred_contribs=True)` returns exact TreeSHAP values, the same maths the `shap` library uses for trees, with no extra dependency.
 **Why:** shap has no s390x wheel; this is faster and already installed.
 
-## D4 — LLM: Granite GGUF via llama_cpp_python from the Lab 2 image · *Pending M0 (model identity)*
-We reuse the Granite model file and the llama.cpp build (with zDNN/NNPA and OpenBLAS) that ship with the L1CC image for the mandatory Lab 2. The worker runs in its own container. `TemplateExplainer` is the local stand-in and the runtime fallback.
+## D4 — LLM: Granite GGUF via llama_cpp_python from the Lab 2 image · *Accepted (confirmed: granite-4.0-h-350m-base-be.f16 @ 3.82 tok/s)*
+The M0 spike located the Granite model at `/home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf`. Loaded via `llama_cpp.Llama(n_ctx=512)` in 8.67 s and generated 60 tokens at 3.82 tokens/second. The worker runs in its own container. `TemplateExplainer` is the local stand-in and the runtime fallback.
 **Rule:** read the Lab 2 code only to learn the model path and settings; **write our own code** (event rule: no copied code).
 
 ## D5 — Queue: SQLite outbox · *Accepted*
@@ -48,14 +46,12 @@ The decision path inserts a row into `explain_jobs` (SQLite, WAL mode). The expl
 Both containers share one host kernel and a local filesystem, so SQLite's locks and WAL shared memory work across them (the known problems are with network filesystems). We set `busy_timeout=5000`. Both containers use the same image, so the same UID owns the files. Verified by the M5 cross-container gate.
 **Rejected:** Redis/Kafka/RabbitMQ (extra services and s390x images to verify); an in-process asyncio queue (the LLM would compete for the API's CPU).
 
-## D6 — Signing backend for the audit chain · *Pending M0*
-- Try these in order and stop at the first that works (30-min timebox in total):
-  1. Ubuntu's prebuilt `python3-cryptography` via `apt`. The VM host is Ubuntu 24.04 with Python 3.12, so it works there directly. Inside our image it works if the L1CC base is Debian/Ubuntu: expose it to `/opt/venv` with a `.pth` file.
-  2. `pip install cryptography`, building from source with Rust.
-  3. Our own Ed25519 from **RFC 8032** (pure Python). It must pass all RFC 8032 §7.1 test vectors.
-- Whatever the backend, **signing runs in a background thread, never in the request path.** It signs a checkpoint (the chain head hash) every 100 entries or every second.
-- Possible IBM Z bonus, *only if verified on our VM*: OpenSSL on z15 and later can use the CPACF `KDSA` instruction for Ed25519. Don't claim this in the pitch unless we confirm it.
-- Post-quantum ML-DSA (Dilithium) via liboqs: a 90-min stretch only after the M3–M5 gates pass.
+## D6 — Signing backend for the audit chain · *Accepted (Option 1: apt python3-cryptography / pure-Python RFC 8032)*
+The M0 signing spike confirmed:
+- Option 1 (`apt-get install -y python3-cryptography`): **Works** (Ubuntu host has version `41.0.7`).
+- Option 2 (`pip install cryptography`): **Fails** (no s390x wheel on PyPI; source build fails missing openssl headers).
+- Option 3: Pure Python RFC 8032 Ed25519 remains available as zero-dependency fallback.
+Whatever the backend, **signing runs in a background thread, never in the request path.** It signs a checkpoint (the chain head hash) every 100 entries or every second.
 
 ## D7 — Container base image: the L1CC Jupyter image · *Accepted*
 `containers/Containerfile` starts `FROM registry.linuxone.cloud.marist.edu/l1cc/jupyterlab-image-s390x:latest`, which is already pulled on the VM.
