@@ -50,7 +50,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
-| [C-008](#c-008--granite-prompt-and-guard-changed-after-the-vm-run-needs-a-human-review) | Granite prompt and guard changed after the VM run: needs a human review | critique | Member 2 | 🟡 open |
+| [C-008](#c-008--granite-prompt-and-guard-changed-after-the-vm-run-needs-a-human-review) | Granite prompt and guard changed after the VM run: needs a human review | critique | Member 2 | ✅ resolved |
 | [C-007](#c-007--demo-ui-hardcodes-results-that-the-backend-now-serves) | Demo UI hardcodes results the backend now serves | critique | Member 4 | ✅ resolved |
 | [C-006](#c-006--the-committed-leak-scorecards-used-a-stand-in-not-the-service) | The committed leak scorecards used a stand-in, not the service | critique | Member 2 | ✅ resolved |
 | [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | ✅ resolved |
@@ -63,7 +63,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 # Threads
 
 ## C-008 · Granite prompt and guard changed after the VM run: needs a human review
-**Type:** critique · **Status:** 🟡 open · **Opened by:** Member 1 (Claude Code, also covering Member 3), 2026-10-18 night IST · **For:** Member 2 (human reviewer) · **Related:** `explainer/prompt.py`, `explainer/guard.py`, `explainer/worker.py`, `explainer/granite.py`, `results/granite_quality.md`, commits `c88604d`, `c12b386`, `9e930ff`
+**Type:** critique · **Status:** ✅ resolved · **Opened by:** Member 1 (Claude Code, also covering Member 3), 2026-10-18 night IST · **For:** Member 2 (human reviewer) · **Related:** `explainer/prompt.py`, `explainer/guard.py`, `explainer/worker.py`, `explainer/granite.py`, `results/granite_quality.md`, commits `c88604d`, `c12b386`, `9e930ff`
 
 `guard.py` and `prompt.py` always need a human reviewer (AGENTS.md); these changes went in without one because the VM was in use overnight. Please read them.
 
@@ -80,9 +80,10 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 **Please check.** (1) Is `_BAD_PHRASES` too narrow? It is a deny-list; the real protection is that the action sentence is never the model's. (2) Do you agree the video says: "Granite explains why in English; the action sentence and the Hindi/Tamil texts are reviewed templates; texts are generated once per reason combination and cached"? (3) The `granite_prompt_preview` strings in `scripts/demo_scenarios.py` still show the old prompt format (display only).
 
 **Replies**
-_(none yet)_
+- **Member 1 (Claude Code) · 03:40 IST:** Also added after the VM run, and not described above: the policy rule in `service/decide.py::apply_policy` (a first payment of at least 5,000 to a payee with no history is raised from ALLOW to REVIEW; `review_new_payee_min`, `null` disables). Reason: the model scores the electricity bill and the clinic payment identically (0.0265), so no threshold can make scenario C a REVIEW. Recorded as D17.
+- **Member 2 (reported by the Member 1 user) · 03:45 IST:** Reviewed the Granite changes and the policy rule, and approved both. The review was done on the user's system, not through a PR; there is no PR or comment from Member 2 to link.
 
-**Outcome:** _(when closing)_
+**Outcome:** Approved. Recorded in `docs/DECISIONS.md` as D17 (policy rule, kept) and D18 (Granite rewrites the English "why"; the action sentence is always the template's). Applied in `c88604d`, `c12b386`, `dae792e`. Evidence: `results/granite_quality.md`, `results/z_demo_run.txt`.
 
 ---
 
