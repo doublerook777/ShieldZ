@@ -15,9 +15,9 @@
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
 | **Current milestone** | M1 gate: remaining items are VM-side (Member 3: golden parity, full PaySim load) · M3 main build next |
 | **Active branches** | main |
-| **Blockers** | None. Two non-blocking questions for Member 1: (1) `Explanation.ts` field? (2) What bytes does `AuditCheckpoint.signature` cover? (see C-004 reply) |
+| **Blockers** | None. The VM is the bottleneck: no LinuxONE facts are recorded yet, so M0 spikes and the M1 VM checks (Member 3) gate M2 |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 2: start M6 (`audit/chain.py`, `signing.py`, `verify.py`) while waiting for M1 freeze. Member 1: see C-004 for 2 quick questions. Member 3/4: please reply to C-004. |
+| **Next action** | Member 3: M0 VM spikes, then M1 task 6 + M2 (model). Member 2: M6 (audit chain; C-004 answers are in the thread). Member 1: M3 on `m3/service-outbox`. Member 4: pitch statistics, demo scenarios |
 
 ---
 
