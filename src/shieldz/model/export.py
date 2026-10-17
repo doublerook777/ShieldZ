@@ -73,11 +73,17 @@ def export_model_artifacts(
         from onnxmltools.convert.common.data_types import FloatTensorType
 
         initial_types = [("input", FloatTensorType([None, len(FEATURE_ORDER)]))]
-        onnx_model = convert_xgboost(engine.booster, initial_types=initial_types)
-        onnx.checker.check_model(onnx_model)
-        onnx.save_model(onnx_model, str(onnx_path))
-        print(f"ONNX model saved and verified: {onnx_path}")
-        artifacts["onnx"] = onnx_path
+        orig_names = getattr(engine.booster, "feature_names", None)
+        try:
+            engine.booster.feature_names = [f"f{i}" for i in range(len(FEATURE_ORDER))]
+            onnx_model = convert_xgboost(engine.booster, initial_types=initial_types)
+            onnx.checker.check_model(onnx_model)
+            onnx.save_model(onnx_model, str(onnx_path))
+            print(f"ONNX model saved and verified: {onnx_path}")
+            artifacts["onnx"] = onnx_path
+        finally:
+            if orig_names is not None:
+                engine.booster.feature_names = orig_names
     except Exception as exc:
         print(f"ONNX export skipped: {exc}")
 
