@@ -30,15 +30,31 @@ def main() -> int:
         default=1000,
         help="Number of canaries to replay (default: 1000)",
     )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="replay through the real service (fills every sink) instead of the log-only stand-in",
+    )
     args = parser.parse_args()
 
     print(f"🐤 Running ShieldZ Canary Leak Audit (env={args.env}, n={args.canaries})...")
-    scorecard = run_leak_audit(
-        runtime_dir=Path(args.runtime_dir),
-        n_canaries=args.canaries,
-        environment=args.env,
-        results_dir=Path(args.results_dir),
-    )
+    close = None
+    pipeline_fn = None
+    if args.live:
+        from shieldz.service.live_replay import live_pipeline_fn
+
+        pipeline_fn, close = live_pipeline_fn(Path(args.runtime_dir))
+    try:
+        scorecard = run_leak_audit(
+            runtime_dir=Path(args.runtime_dir),
+            pipeline_fn=pipeline_fn,
+            n_canaries=args.canaries,
+            environment=args.env,
+            results_dir=Path(args.results_dir),
+        )
+    finally:
+        if close:
+            close()
 
     print("\n" + scorecard.to_markdown())
 

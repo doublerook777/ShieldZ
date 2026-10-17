@@ -47,7 +47,7 @@ z-up: z-build
 	else API=""; EXP="--cpus 0.5"; fi; \
 	docker rm -f shieldz-api shieldz-explainer >/dev/null 2>&1 || true; \
 	docker run -d --name shieldz-api --network host $$API \
-	  -v $(CURDIR)/artifacts:/app/artifacts $(IMAGE) api; \
+	  -v $(CURDIR)/artifacts:/app/artifacts -v $(CURDIR)/results:/app/results:ro $(IMAGE) api; \
 	docker run -d --name shieldz-explainer --network host $$EXP \
 	  -v $(CURDIR)/artifacts:/app/artifacts $(IMAGE) explainer; \
 	docker ps --filter name=shieldz; \

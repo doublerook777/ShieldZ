@@ -49,3 +49,8 @@ def audit_private_key() -> Path:
 
 def audit_public_key() -> Path:
     return keys_dir() / "audit_pubkey.pem"
+
+
+def results_dir() -> Path:
+    """Committed evidence (latency files, leak scorecards). Read-only for the service."""
+    return Path(os.environ.get("SHIELDZ_RESULTS", ROOT / "results"))
