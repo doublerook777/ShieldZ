@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ShieldZ — Demo Scenarios (M7 / M8).
 
-Three scripted scenarios telling the end-to-end story of ShieldZ:
+Three scripted stories telling the end-to-end story of ShieldZ:
   (a) "Digital Arrest" scam: Coercive fake-police video call ordering Mrs. Savitri Devi
       to drain her life savings (₹4,85,000 of ₹4,90,000) to an unverified "escrow" -> BLOCK.
   (b) Routine Utility Bill payment: Monthly ₹1,840.50 electricity payment to a seeded
@@ -22,8 +22,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from shieldz.contracts import (
@@ -65,14 +65,17 @@ SCENARIOS: dict[str, DemoScenario] = {
         id="digital_arrest",
         title="Scenario A: 'Digital Arrest' Imposter Scam",
         category="High-Risk Coercion Scam",
-        victim_profile="Mrs. Savitri Devi Kulkarni, 72-year-old retired schoolteacher living in Pune.",
+        victim_profile=(
+            "Mrs. Savitri Devi Kulkarni, 72-year-old retired schoolteacher living in Pune."
+        ),
         storyline=(
-            "Mrs. Kulkarni receives a Skype video call from an imposter in a fake police uniform posing as a "
-            "senior CBI investigator. He claims an illegal parcel containing narcotics and counterfeit passports "
-            "addressed to her was seized at Mumbai airport. Under threat of immediate 'Digital Arrest' and public "
-            "disgrace, he coerces her into liquidating her fixed deposits and transferring ₹4,85,000—virtually "
-            "her entire account balance (₹4,90,000)—into a fraudulent 'Supreme Court Asset Verification Escrow' "
-            "account at 2:45 AM. She is told the funds will be 'verified and returned in 1 hour'."
+            "Mrs. Kulkarni receives a Skype video call from an imposter in a fake police uniform "
+            "posing as a senior CBI investigator. He claims an illegal parcel containing "
+            "narcotics and counterfeit passports was seized at Mumbai airport. Under threat "
+            "of immediate 'Digital Arrest' and public disgrace, he coerces her into liquidating "
+            "her fixed deposits and transferring ₹4,85,000—virtually her entire account balance "
+            "(₹4,90,000)—into a fraudulent 'Supreme Court Asset Verification Escrow' account "
+            "at 2:45 AM. She is told the funds will be 'verified and returned in 1 hour'."
         ),
         payment={
             "payer_name": "Savitri Devi Kulkarni",
@@ -109,9 +112,9 @@ SCENARIOS: dict[str, DemoScenario] = {
             "Do not mention any numbers, names or links."
         ),
         family_alert_preview=(
-            "🛡️ [ShieldZ Guardian Alert] A high-risk payment of ₹4,85,000 from Savitri Devi Kulkarni "
-            "was safely paused. Triggers: Account drain to an unverified recipient at 2:45 AM. "
-            "Please call your mother immediately. Common scam tactic detected."
+            "🛡️ [ShieldZ Guardian Alert] A high-risk payment of ₹4,85,000 from Savitri Devi "
+            "Kulkarni was safely paused. Triggers: Account drain to an unverified recipient at "
+            "2:45 AM. Please call your mother immediately. Common scam tactic detected."
         ),
     ),
     "utility_bill": DemoScenario(
@@ -120,10 +123,11 @@ SCENARIOS: dict[str, DemoScenario] = {
         category="Legitimate Recurring Payment",
         victim_profile="Mrs. Savitri Devi Kulkarni, paying her monthly household expenses.",
         storyline=(
-            "On Saturday morning at 11:15 AM, Mrs. Kulkarni logs in to pay her regular monthly electricity bill of "
-            "₹1,840.50 to Maharashtra State Electricity Distribution Co. Ltd. (MSEDCL). The payee account "
-            "(DEMO-ELECTRICITY-BOARD) is a verified utility merchant with over 5,000 successful historical payments "
-            "in the platform seed history. The amount represents less than 0.4% of her available balance."
+            "On Saturday morning at 11:15 AM, Mrs. Kulkarni logs in to pay her regular monthly "
+            "electricity bill of ₹1,840.50 to Maharashtra State Electricity Distribution Co. "
+            "Ltd. (MSEDCL). The payee account (DEMO-ELECTRICITY-BOARD) is a verified utility "
+            "merchant with over 5,000 successful historical payments in the platform seed "
+            "history. The amount represents less than 0.4% of her available balance."
         ),
         payment={
             "payer_name": "Savitri Devi Kulkarni",
@@ -151,13 +155,15 @@ SCENARIOS: dict[str, DemoScenario] = {
         id="borderline_clinic",
         title="Scenario C: Urgent Diagnostic Clinic Payment While Traveling",
         category="Borderline / Cautionary Transaction",
-        victim_profile="Mrs. Savitri Devi Kulkarni, traveling to Nagpur for a family event.",
+        victim_profile=("Mrs. Savitri Devi Kulkarni, traveling to Nagpur for a family event."),
         storyline=(
-            "While visiting relatives in Nagpur, Mrs. Kulkarni visits an outpatient diagnostics lab for urgent "
-            "blood tests and an ultrasound. She authorizes an electronic payment of ₹8,500 to a newly encountered "
-            "merchant UPI ID ('UPI-apexcare.reception@icici'). The recipient has zero prior history in the banking "
-            "cluster, but the payment leaves 98.3% of her balance intact and occurs during evening clinic hours (7:30 PM). "
-            "The system flags this for two-step review rather than outright blocking."
+            "While visiting relatives in Nagpur, Mrs. Kulkarni visits an outpatient diagnostics "
+            "lab for urgent blood tests and an ultrasound. She authorizes an electronic payment "
+            "of ₹8,500 to a newly encountered merchant UPI ID "
+            "('UPI-apexcare.reception@icici'). The recipient has zero prior history in the "
+            "banking cluster, but the payment leaves 98.3% of her balance intact and occurs "
+            "during evening clinic hours (7:30 PM). The system flags this for two-step review "
+            "rather than outright blocking."
         ),
         payment={
             "payer_name": "Savitri Devi Kulkarni",
@@ -191,7 +197,8 @@ SCENARIOS: dict[str, DemoScenario] = {
         ),
         family_alert_preview=(
             "ℹ️ [ShieldZ Advisory] Savitri Devi initiated a ₹8,500 payment to a new recipient "
-            "(Apex Care Diagnostics). Status: Held for customer PIN confirmation. No balance drain detected."
+            "(Apex Care Diagnostics). Status: Held for customer PIN confirmation. "
+            "No balance drain detected."
         ),
     ),
 }
@@ -249,10 +256,11 @@ def dump_json() -> str:
 def run_live(base_url: str = "http://localhost:8000") -> int:
     """Sends each scenario's payment payload to the running ShieldZ API."""
     import time
+
     try:
         import httpx
     except ImportError:
-        print("httpx is required to run live HTTP scenarios. Install via pip or run in venv.")
+        print("httpx is required to run live HTTP scenarios. Install via pip.")
         return 1
 
     print(f"\n--- Running ShieldZ Live Demo against {base_url} ---\n")
@@ -263,15 +271,17 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
         print(f"Server health check: {health.status_code} -> {health.json()}\n")
     except Exception as exc:
         print(f"Error connecting to {base_url}: {exc}")
-        print("Tip: Start the API with 'uvicorn shieldz.service.app:create_app --factory' first.")
+        print("Tip: Start the API with 'uvicorn shieldz.service.app:create_app --factory'.")
         return 1
 
-    for sc_id, sc in SCENARIOS.items():
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    for _sc_id, sc in SCENARIOS.items():
+        sep = "━" * 68
+        print(sep)
         print(f"▶ {sc.title}")
         print(f"  Victim: {sc.victim_profile}")
         print(f"  Story:  {sc.storyline}")
-        print(f"  Sending: {sc.payment['amount']} INR ({sc.payment['tx_type']}) to {sc.payment['payee_name']}...")
+        amount_txt = f"{sc.payment['amount']} INR ({sc.payment['tx_type']})"
+        print(f"  Sending: {amount_txt} to {sc.payment['payee_name']}...")
 
         resp = client.post("/v1/score", json=sc.payment)
         if resp.status_code != 200:
@@ -279,12 +289,12 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
             continue
 
         dec = resp.json()
-        print(f"  ⚡ Instant Decision: {dec['decision']} (Risk: {dec['risk_level']}) in {dec['server_ms']} ms")
+        timing_txt = f"{dec['decision']} (Risk: {dec['risk_level']}) in {dec['server_ms']} ms"
+        print(f"  ⚡ Instant Decision: {timing_txt}")
         if dec.get("reason_codes"):
             codes = [r["code"] for r in dec["reason_codes"]]
             print(f"  🔍 Reason Codes:   {', '.join(codes)}")
 
-        # If blocked or reviewed, poll for explanation
         decision_id = dec["decision_id"]
         if dec["decision"] != "ALLOW":
             print(f"  ⏳ Polling explanation for decision {decision_id[:8]}...")
@@ -293,17 +303,17 @@ def run_live(base_url: str = "http://localhost:8000") -> int:
                 exp_resp = client.get(f"/v1/explanations/{decision_id}")
                 if exp_resp.status_code == 200:
                     exp_data = exp_resp.json()
-                    print(f"  ✍️  Granite Warning ({exp_data['source']}): \"{exp_data['text']}\"")
+                    print(f'  ✍️  Granite Warning ({exp_data["source"]}): "{exp_data["text"]}"')
                     explanation_found = True
                     break
                 time.sleep(0.5)
             if not explanation_found:
                 print("  ℹ️  Explanation job still queued in outbox (worker not running).")
 
-            print(f"  📱 Family Alert Dispatched: \"{sc.family_alert_preview}\"")
+            print(f'  📱 Family Alert Dispatched: "{sc.family_alert_preview}"')
         print()
 
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("━" * 68)
     print("Demo scenarios completed.")
     return 0
 
@@ -313,7 +323,9 @@ def main() -> int:
     parser.add_argument("--list", action="store_true", help="List summary of all scenarios")
     parser.add_argument("--show", type=str, help="Show full details of a specific scenario ID")
     parser.add_argument("--json", action="store_true", help="Output all scenarios as JSON")
-    parser.add_argument("--verify", action="store_true", help="Validate scenarios against contracts")
+    parser.add_argument(
+        "--verify", action="store_true", help="Validate scenarios against contracts"
+    )
     parser.add_argument("--run", action="store_true", help="Send scenarios to running ShieldZ API")
     parser.add_argument("--url", type=str, default="http://localhost:8000", help="API base URL")
 
@@ -323,7 +335,8 @@ def main() -> int:
         print("Available ShieldZ Demo Scenarios:")
         for sc_id, sc in SCENARIOS.items():
             print(f"  • [{sc_id}] {sc.title}")
-            print(f"      Category: {sc.category} | Expected: {sc.expected_decision.value} ({sc.expected_risk.value})")
+            exp_text = f"{sc.expected_decision.value} ({sc.expected_risk.value})"
+            print(f"      Category: {sc.category} | Expected: {exp_text}")
         return 0
 
     if args.show:
@@ -349,7 +362,6 @@ def main() -> int:
     if args.run:
         return run_live(args.url)
 
-    # Default action if no arguments: verify and list
     verify_scenarios()
     print("\nRun with --help to see execution options.")
     return 0
