@@ -44,6 +44,42 @@ Copy the template below. Rules:
 
 ---
 
+## 2026-10-17 23:25 IST — Member 3 (LinuxONE Operator) — M1 & M2 Complete on LinuxONE
+
+**In one sentence:** Downloaded the full PaySim dataset directly from Kaggle onto the LinuxONE VM, trained an XGBoost fraud detector on 6.06 million rows with zero target leakage, proved 0.9944 PR-AUC and 0.9994 recall at 1% FPR on holdout data, exported verified ONNX models, and achieved 2.24 ms p99 in-process decision latency.
+
+**What I built or changed (simple words):**
+- **PaySim Kaggle Download**: Wrote `scripts/download_kaggle_paysim.py` to pull `ealaxi/paysim1` (493.5 MB CSV) directly onto the LinuxONE VM using `kagglehub` in 4.1 s and compressed it to `data/paysim1.csv.gz` (194.7 MB).
+- **Data Loader (`shieldz.model.data`)**: Implemented low-memory loading with compact dtypes (`uint16`, `float32`, `uint8`). Full 6.36 million rows load in 17.58 s using only 3.9 GB of RAM (well below the 7.8 GB machine limit). Post-transaction balances (`newbalance*`) and `isFlaggedFraud` are strictly excluded from loading.
+- **Reason Code Extraction (`shieldz.model.reasons`)**: Built exact TreeSHAP log-odds mapper (`pred_contribs=True`) mapping top positive contributors to closed `ReasonCode` and discrete `Level` enums without any numeric transaction leakage.
+- **Engine Protocol (`shieldz.model.engine.XGBoostEngine`)**: Implemented `contracts.Engine` protocol featuring ultra-fast in-process `inplace_predict` scoring.
+- **Training Pipeline (`shieldz.model.train`)**: Trained an XGBoost `tree_method='hist'` booster in 20.74 s with `scale_pos_weight` handling the 0.13% fraud class imbalance.
+- **Holdout Evaluation (`shieldz.model.evaluate`)**: Evaluated on 103,573 holdout rows (`step > 600`), achieving **0.9944 PR-AUC** (vs 0.039 baseline) and **0.9994 Recall at 1% FPR**. Thresholds selected: `t_review = 0.70`, `t_block = 0.75`.
+- **Latency Benchmark (`results/engine_bench.json`)**: Measured 5,000 single-row queries (`score + reasons`): **p50 = 0.438 ms**, **p95 = 0.842 ms**, **p99 = 2.240 ms** (handily beating the ≤ 5.0 ms target).
+- **Parity & Property Tests (`tests/unit/test_parity.py`)**: All 126 unit tests pass on LinuxONE s390x. Verified ONNX export (`model.onnx`) with `onnx.checker`.
+
+**Why it's done this way:**
+- Parquet C extensions segfault on big-endian `s390x` machines because dictionary page encodings assume little-endian byte orders. Gzipped CSV (`paysim1.csv.gz`) with `pandas.read_csv` is immune to endianness bugs, fast, and 100% portable.
+- `inplace_predict` avoids allocating a new `DMatrix` on every single transaction, which is how we achieved sub-millisecond p50 inference on IBM Z.
+
+**How to see it working:**
+    On LinuxONE VM:
+    `docker exec -w /home/jovyan/shared/ShieldZ notebook /opt/venv/bin/pytest tests/unit/ -v`  →  126 passed
+    `cat results/model_metrics.json`  →  PR-AUC: 0.9944, ROC-AUC: 0.9999
+    `cat results/engine_bench.json`  →  p99: 2.24 ms
+
+**What's not done / known problems:**
+- Docker image `shieldz:latest` (`make z-build`) and live service benchmark on LinuxONE container stack (`make bench TAG=real`).
+
+**If I were continuing, I would next:**
+1. Run `make z-build` on the VM to build the container image.
+2. Run `make z-up` to bring up `shieldz-api` and `shieldz-explainer`.
+3. Run `make bench TAG=real` on the VM to verify end-to-end HTTP p99 < 50 ms.
+
+**Files to look at first:** `src/shieldz/model/data.py`, `src/shieldz/model/train.py`, `src/shieldz/model/engine.py`, `results/model_metrics.json`
+
+---
+
 ## 2026-10-17 22:50 IST — Member 4 (Pitch & Review) & Member 2 (Proof build) — M4 + M7 Integration
 
 **In one sentence:** We closed out the local proof and pitch tasks by running the Canary Leak Audit with live service replay across all 11 sinks with 0 leaks, integrated the 3 contract-compliant demo scenarios and pitch research, and resolved C-006 and C-007.
