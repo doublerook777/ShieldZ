@@ -1,2 +1,26 @@
 reference/
 CLAUDE.md
+
+# Sensitive files & secrets
+artifacts/
+data/
+*.pem
+*.key
+pepper
+
+# Model weights
+*.gguf
+
+# Python & Environment
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS junk
+.DS_Store
+Thumbs.db

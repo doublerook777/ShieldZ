@@ -9,14 +9,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 · planning session (AI agent, Claude Code) |
+| **Last updated** | 2026-10-17 16:30 IST · analysis & critique session (AI agent, Antigravity) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M0 — not started |
-| **Active branches** | none (all work so far is docs on `main`, uncommitted) |
+| **Current milestone** | M0 — not started (analysis & bug critique complete) |
+| **Active branches** | main |
 | **Blockers** | none |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | All members: M0 tasks 1–8 in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md#m0--platform-spikes-and-scaffolding-1600--1730--all-members). Member 3: VM facts + spikes · Member 1: repo skeleton · Member 2: PaySim download + licence · Member 4: pitch statistics |
+| **Next action** | Address critical findings in `conversation.md` (fix `.gitignore`, start M0 skeleton & spikes, use Ubuntu `python3-cryptography`). |
 
 ---
 
@@ -122,6 +122,14 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 16:30 IST · AI agent (Antigravity) · review & critique · M0
+- Did: Conducted full architectural, security, ML, and LinuxONE feasibility audit across all project documentation and local environment. Created `conversation.md` detailing 7 critical vulnerabilities/bugs (non-numeric PII leak risk in "no digits" guard, Birthday Paradox false positives in 6-digit partial canary scanner, latency bottlenecks in TreeSHAP/audit log file locking, SQLite WAL concurrency over Docker bind mounts, empty history store cold-start bug, PaySim non-leaky PR-AUC feasibility, and overlooked Ubuntu `apt` native `python3-cryptography` package).
+- Evidence: `conversation.md`
+- Branch / commit: `main`
+- State left in: `conversation.md` created; `.gitignore` needs updating before generating keys/data; M0 scaffolding pending.
+- Next step: Update `.gitignore` to prevent secret/data leaks, create project scaffolding (`pyproject.toml`, `requirements/`, `Makefile`), and start M0 spikes.
+- Gotchas: Local machine runs Python 3.13 without `uv` or `docker`; Ubuntu s390x has native `python3-cryptography` via `apt` (avoids need to build from source or implement custom RFC 8032 Ed25519 in pure Python).
 
 ### 2026-10-17 16:05 IST · AI agent (Claude Code) · planning · update
 - Did: Set the deadline (Sun 18 Oct 10:00 IST) and team name (Marauders). Rescaled the schedule to 18 h on the clock. Replaced the 6 lanes with the 4-member hybrid model: main-build baton plus parallel proof build, LinuxONE operator, and pitch & review. Switched the docs to Ubuntu 24.04 + Docker to match the team's Jupyter setup (ADR D14, D15).

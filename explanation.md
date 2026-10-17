@@ -44,6 +44,38 @@ Copy the template below. Rules:
 
 ---
 
+## 2026-10-17 16:30 IST — AI agent (Antigravity) — project analysis & critique
+
+**In one sentence:** I did a deep engineering and architectural review of the entire ShieldZ plan, identified 7 critical vulnerabilities and operational risks, and documented them with solutions in `conversation.md`.
+
+**What I built or changed (simple words):**
+- Wrote `conversation.md`: a complete technical critique covering the prompt guards, the canary leak scanner, system latency, Docker/SQLite concurrency, machine learning targets on PaySim, and LinuxONE crypto options.
+- Updated `progress.md` with the new findings and next steps.
+
+**Why it's done this way:**
+- Finding design traps now (at 16:30) saves hours of debugging later when running against the clock.
+- For example, Ubuntu 24.04 on LinuxONE already has `python3-cryptography` available via `apt`, meaning we don't need to waste time compiling Rust or writing pure-Python elliptic curve math. Also, the canary scanner's 6-digit partial rule would cause false alarms on timestamps and hashes unless fixed.
+
+**How to see it working:**
+    Read `conversation.md` to see the detailed breakdown and priority recommendations.
+
+**What's not done / known problems:**
+- Code scaffolding (`Makefile`, `pyproject.toml`, `requirements/`, `contracts.py`) has not been written yet.
+- `.gitignore` needs to be updated with `data/` and `artifacts/` before files are created.
+
+**Things that confused me (so they won't confuse you):**
+- The prompt guard relies on "no digits" to prevent PII leaks, but personal names contain letters, not digits! We need explicit string entity checks, not just a digit check.
+- The 6-digit canary partial check will easily collide with random digits in timestamps or hashes (Birthday Paradox).
+
+**If I were continuing, I would next:**
+1. Update `.gitignore` so secrets and data are never accidentally committed.
+2. Create the M0 repo skeleton (`pyproject.toml`, `requirements/local-dev.txt`, `Makefile`).
+3. Define the shared data contracts in `src/shieldz/contracts.py`.
+
+**Files to look at first:** `conversation.md`, `progress.md`
+
+---
+
 ## 2026-10-17 16:05 IST — agent (Claude Code) for the team lead — planning update
 
 **In one sentence:** We have 18 hours (deadline Sun 10:00 IST) and 4 people, so the plan now has clock times and four roles. It also uses Docker, because that's what our VM runs.
