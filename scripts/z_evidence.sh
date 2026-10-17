@@ -2,12 +2,10 @@
 # Run on the VM host from the repo root, after `make z-up`. Produces the gate evidence that the
 # benchmark file alone doesn't cover (M3/M5/M6/M7). Every output goes to results/.
 #
-#   bash scripts/z_evidence.sh            # about 25 min: Granite writes ~16 s per explanation
-#   SAMPLES=10 bash scripts/z_evidence.sh # quick pass
+#   bash scripts/z_evidence.sh            # about 15 min (the Granite quality run alone is ~6 min)
 set -u
 cd "$(dirname "$0")/.."
 IMAGE=${IMAGE:-shieldz:latest}
-SAMPLES=${SAMPLES:-50}
 RUN="docker run -i --rm --network host -v $PWD/artifacts:/app/artifacts -v $PWD/results:/app/results $IMAGE"
 mkdir -p results
 fail=0
@@ -39,13 +37,22 @@ for status, n in db.execute("SELECT status, COUNT(*) FROM explain_jobs GROUP BY 
 PY
 cat results/z_busy_docker_stats.txt
 
-echo "== 4. drop the benchmark's backlog (Granite needs ~16 s per job), then sample Granite alone"
+echo "== 4. drop the benchmark's backlog (Granite needs ~11 s per fresh prompt)"
 $RUN python -c "
 from shieldz.outbox.queue import Outbox
 print('dropped', Outbox('/app/artifacts/runtime/outbox.sqlite').skip_pending(), 'pending jobs')"
 sleep 20   # let the job the worker already holds finish
-$RUN python scripts/granite_sample.py --n "$SAMPLES" --timeout 3000 2>&1 | tee results/z_granite_sample.log
-[ "${PIPESTATUS[0]}" -eq 0 ] || { echo "FAIL: Granite rate below 80% (see results/z_granite_sample.log)"; fail=1; }
+
+echo "== 4b. Granite quality on 30 distinct prompts, cache bypassed (about 6 min)"
+docker stop shieldz-explainer >/dev/null   # the quality run needs the cores the explainer uses
+docker run -i --rm --network host --cpuset-cpus 1-2 -v "$PWD/results:/app/results" "$IMAGE" \
+  python scripts/granite_quality.py --n 30 2>&1 | tee results/z_granite_quality.log
+[ "${PIPESTATUS[0]}" -eq 0 ] || { echo "FAIL: Granite quality below 80% (see results/granite_quality.md)"; fail=1; }
+docker start shieldz-explainer >/dev/null
+
+echo "== 4c. end to end through the API (mostly cache hits, by design): scenario texts"
+$RUN python scripts/granite_sample.py --n 6 --timeout 120 --out /app/results/sample_explanations.md \
+  2>&1 | tail -6 | tee results/z_granite_sample.log
 
 echo "== 5. audit chain verification and append cost"
 $RUN python -m shieldz.audit.verify artifacts/runtime/audit/chain.jsonl \

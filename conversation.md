@@ -50,6 +50,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
+| [C-008](#c-008--granite-prompt-and-guard-changed-after-the-vm-run-needs-a-human-review) | Granite prompt and guard changed after the VM run: needs a human review | critique | Member 2 | 🟡 open |
 | [C-007](#c-007--demo-ui-hardcodes-results-that-the-backend-now-serves) | Demo UI hardcodes results the backend now serves | critique | Member 4 | ✅ resolved |
 | [C-006](#c-006--the-committed-leak-scorecards-used-a-stand-in-not-the-service) | The committed leak scorecards used a stand-in, not the service | critique | Member 2 | ✅ resolved |
 | [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | ✅ resolved |
@@ -60,6 +61,30 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 ---
 
 # Threads
+
+## C-008 · Granite prompt and guard changed after the VM run: needs a human review
+**Type:** critique · **Status:** 🟡 open · **Opened by:** Member 1 (Claude Code, also covering Member 3), 2026-10-18 night IST · **For:** Member 2 (human reviewer) · **Related:** `explainer/prompt.py`, `explainer/guard.py`, `explainer/worker.py`, `explainer/granite.py`, `results/granite_quality.md`, commits `c88604d`, `c12b386`, `9e930ff`
+
+`guard.py` and `prompt.py` always need a human reviewer (AGENTS.md); these changes went in without one because the VM was in use overnight. Please read them.
+
+**What was wrong.** The M5 sample on s390x reported "50/50 written by Granite (100%)", but all 100 stored Granite texts were junk: loops of "Do not mention any of the following ...", passing the guard because `validate_output` only checks PII shapes. The old prompt ended with an instruction line, so the 350M *base* model continued the instruction list. Next attempt (compose a warning from the codes) gave falsehoods ("Your account has been drained", "There is no evidence of fraud"). Last, the rewrite-style prompt gave good "why" sentences but told the customer to call "their number" / "the number they give you" in all 30 samples: in a digital-arrest scam that is the scammer's number.
+
+**What changed.**
+- `prompt.py`: the prompt is now "rewrite this bank warning in simple words" with two fixed examples and the English template sentence for the job's reason codes. Still enum-derived, no digits, byte-for-byte re-rendered by `validate_prompt`. Tests updated (`test_explainer.py`: two assertions).
+- `guard.py`: new `validate_quality` (loops, contradictions, missing advice) and `compose_explanation`: keep the model's leading explanation sentences, drop everything from its first advice sentence on, and always append the template's fixed action ("call your bank on the official number on your card"). `validate_output` is unchanged.
+- `worker.py`: English jobs only go to the LLM (a 350M model answers in English whatever the language line says; HI/TA keep the reviewed templates). Granite text is cached by prompt hash in `outbox.sqlite` (`llm_cache`, already a registered sink); cached text is guarded again on the way out. The queue is newest-first (`claim_next`), with `Outbox.skip_pending`.
+- `granite.py`: 56 tokens, temperature 0, `repeat_penalty` 1.1, stop at newline, trim to the last full sentence.
+
+**Evidence on s390x** (`results/granite_quality.md`, 30 distinct prompts, cache bypassed): 28 of 30 (93%) accepted, the 2 rejected fall back to the template; fresh generation p50 10.4 s, p95 11.2 s (was 16-21 s). Every stored text ends with the fixed safe action; none contains "their number" or "they give".
+
+**Please check.** (1) Is `_BAD_PHRASES` too narrow? It is a deny-list; the real protection is that the action sentence is never the model's. (2) Do you agree the video says: "Granite explains why in English; the action sentence and the Hindi/Tamil texts are reviewed templates; texts are generated once per reason combination and cached"? (3) The `granite_prompt_preview` strings in `scripts/demo_scenarios.py` still show the old prompt format (display only).
+
+**Replies**
+_(none yet)_
+
+**Outcome:** _(when closing)_
+
+---
 
 ## C-007 · Demo UI hardcodes results that the backend now serves
 **Type:** critique · **Status:** ✅ resolved · **Opened by:** Member 1 (Claude Code), 2026-10-17 night IST · **For:** Member 4 · **Related:** `origin/m7/pitch-demo-scenarios` `service/static/index.html`, plan M7 task 1, `m7/service-endpoints`
