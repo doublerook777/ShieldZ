@@ -15,9 +15,9 @@
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
 | **Current milestone** | M0 ✅ · M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ · M6 ✅ · M7 ✅ (Feature freeze complete; dress rehearsal & submission video) |
 | **Active branches** | `main` |
-| **Blockers** | None. All platform gates, live containers, benchmarks, leak audit, and demo scenarios fully operational. |
+| **Blockers** | VM evidence still missing for M5/M6/M7 (see unticked boxes). `bash scripts/z_evidence.sh` on the VM collects all of it (needs a fresh `make z-build && make z-up`, which now fails the build if the fast Ed25519 signer is missing). Scenario C REVIEW is unverified. |
 | **Main-build baton** | Member 3 / Member 4 (Demo pitch, video recording, submission packet) |
-| **Next action** | Member 4 / Team: Final dress rehearsal and record the 3-minute pitch demo video showing live UI, demo scenarios, audit verification, and leak scorecard. |
+| **Next action** | On the VM: `git pull && make z-build && make z-up && bash scripts/z_evidence.sh`, commit `results/`, then tag gates. If scenario C is not REVIEW, widen the model's REVIEW band (`thresholds.json`) or adjust scenario C. Then dress rehearsal and the video. |
 
 ---
 
@@ -74,15 +74,15 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ### M5 — Granite explainer
 - [x] Guard tests + fuzz (1,000 fuzzed prompts → 0 accepted) · [x] Explanation on VM (Granite 4.0 350M GGUF live on cores 1-2, 11.58 s generation, 0 PII digits)
-- [x] p99 < 50 ms with explainer busy (verified via CPU pinning: core 0 for API, cores 1-2 for explainer) · [x] Real Granite explanations in outbox
+- [ ] p99 < 50 ms with explainer busy (CPU pinning is only an argument; needs `make bench TAG=busy` while Granite generates: `scripts/z_evidence.sh`) · [x] Real Granite explanations in outbox · [ ] ≥ 80% of 50 sample jobs `source = granite` + `results/sample_explanations.md` (`scripts/z_evidence.sh`)
 
 ### M6 — Audit trail
-- [x] Verify 10k chain on VM · [x] Tamper tests (mod, delete, swap detected at exact seq) · [x] RFC 8032 vectors (§7.1 tests 1, 2, 3 pass) · [x] ≤ 1 ms p99 overhead
+- [ ] Verify 10k chain on VM (output not saved: `scripts/z_evidence.sh` writes `results/audit_verify_linuxone.txt`) · [x] Tamper tests (mod, delete, swap detected at exact seq) · [x] RFC 8032 vectors (§7.1 tests 1, 2, 3 pass) · [ ] ≤ 1 ms p99 overhead (`results/audit_append_bench.txt`)
 
 ### M7 — Demo and integration
 - [x] Demo UI (`service/static/index.html`) wired to real backend endpoints (`/v1/score`, `/v1/explanations`, `/v1/leak-scorecard`, `/v1/audit/verify`)
-- [x] Demo scenarios CLI (`scripts/demo_scenarios.py`: Scenario A BLOCK in 1.6–3.9 ms, Scenario B ALLOW in 1.0 ms, Scenario C verified)
-- [x] Clean `make z-up` → 3 scenarios → explanations → verify → scorecard 0
+- [x] Demo scenarios CLI (`scripts/demo_scenarios.py`: Scenario A BLOCK in 1.6–3.9 ms, Scenario B ALLOW in 1.0 ms, Scenario C: decision NOT recorded; expected REVIEW but the model's REVIEW band is 0.70-0.75, so check `results/z_demo_run.txt`)
+- [ ] Clean `make z-up` → 3 scenarios (A BLOCK, B ALLOW, C REVIEW) → explanations → verify → scorecard 0 (run `bash scripts/z_evidence.sh` on the VM)
 - [ ] Timed dress rehearsal · [x] Feature freeze declared
 
 ### M8 — Submission
@@ -233,6 +233,11 @@ Entry template:
 - State left in: M4 local ✅ done. VM run still needed (M4 gate: "VM 0 leaks"). M6 (audit chain) and M5 (explainer) not yet started.
 - Next step: Start M6 — `audit/chain.py` (append-only JSONL hash chain, in-process lock), `signing.py` (background checkpoint thread), `verify.py` (CLI). Then M5 — `prompt.py`, `guard.py`, `template.py`, `journal.py`.
 - Gotchas: Two non-blocking questions for Member 1 pending in C-004: (1) add `ts` to `Explanation`? (2) confirm `AuditCheckpoint.signature` covers raw `head_hash` bytes. Digits-only scanner variant must be restricted to phone/account fields only — memo hex IDs produce false positives otherwise. Skip files starting with `.` in catch-all walk (macOS `.DS_Store` causes false partial digit hits).
+
+### 2026-10-18 (night) IST · Member 1 (Claude Code), also covering Member 3 · main build · review of Member 3's VM work
+- Did: checked the claims against `results/`. Confirmed: s390x latency (p99 6.90 ms @c=1, 21.83 ms @c=8, outbox one row per request), model metrics (PR-AUC 0.9944, time-based split, thresholds from validation), LinuxONE leak scorecard (`--live`, 11 sinks, 16.7 MB, 0 leaks). Fixed: lint on `main`, the Containerfile lost its Ed25519 build check (`|| true`), restored; merged the Granite mount into `make z-up`.
+- Not confirmed (unticked above): latency with the explainer busy, 10k-chain verify output, audit append p99, Granite rate on 50 jobs, scenario C decision. Added `scripts/granite_sample.py` and `scripts/z_evidence.sh` to collect all of it on the VM.
+- Gotchas: scenario A was changed to an exact full drain (balance 485,000) so the model blocks it; say "entire balance" in the video. The model REVIEW band (0.70-0.75) is almost empty on PaySim, so scenario C may come back ALLOW. I have no SSH key for the VM (`l1cc.pem`), so none of this ran on s390x yet.
 
 ### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M7 backend + live Leak Audit
 - Did: `GET /v1/audit/verify` and `GET /v1/leak-scorecard` (aggregate fields only), the app serves `service/static/` at `/` when it exists, `config.results_dir()`, `make z-up` mounts `results/` read-only into the api. `python -m shieldz.leak_audit --live` (`service/live_replay.py`) replays canaries through the real app and the explainer worker. 115 tests pass.
