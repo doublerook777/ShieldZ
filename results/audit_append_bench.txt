@@ -1,0 +1,1 @@
+AuditChain.append x5000 on s390x: p50 0.021 ms, p99 0.033 ms (gate: p99 <= 1 ms)

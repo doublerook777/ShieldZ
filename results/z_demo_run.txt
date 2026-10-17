@@ -1,0 +1,32 @@
+
+--- Running ShieldZ Live Demo against http://localhost:8000 ---
+
+Server health check: 200 -> {'status': 'ok', 'platform': 's390x', 'engine': 'xgboost', 'model_version': 'xgb-v1'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▶ Scenario A: 'Digital Arrest' Imposter Scam
+  Victim: Mrs. Savitri Devi Kulkarni, 72-year-old retired schoolteacher living in Pune.
+  Story:  Mrs. Kulkarni receives a Skype video call from an imposter in a fake police uniform posing as a senior CBI investigator. He claims an illegal parcel containing narcotics and counterfeit passports was seized at Mumbai airport. Under threat of immediate 'Digital Arrest' and public disgrace, he coerces her into liquidating her fixed deposits and transferring ₹4,85,000—her entire account balance (₹4,85,000)—into a fraudulent 'Supreme Court Asset Verification Escrow' account at 2:45 AM. She is told the funds will be 'verified and returned in 1 hour'.
+  Sending: 485000.0 INR (TRANSFER) to Supreme Court Clearance Escrow...
+  ⚡ Instant Decision: BLOCK (Risk: HIGH) in 5.464 ms
+  🔍 Reason Codes:   AMOUNT_HIGH_VS_BALANCE, ACCOUNT_DRAIN, MULE_ACCOUNT_PATTERN
+  ⏳ Polling explanation for decision 65e99eb4...
+  ✍️  Granite Warning (template): "This payment uses most of the funds in your account. This payment would completely drain your remaining balance. The destination account matches characteristics of an unauthorized relay account. Please pause and verify this transfer by calling your bank on the official number on your card before proceeding."
+  📱 Family Alert Dispatched: "🛡️ [ShieldZ Guardian Alert] A high-risk payment of ₹4,85,000 from Savitri Devi Kulkarni was safely paused. Triggers: Account drain to an unverified recipient at 2:45 AM. Please call your mother immediately. Common scam tactic detected."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▶ Scenario B: Routine Monthly Electricity Bill
+  Victim: Mrs. Savitri Devi Kulkarni, paying her monthly household expenses.
+  Story:  On Saturday morning at 11:15 AM, Mrs. Kulkarni logs in to pay her regular monthly electricity bill of ₹1,840.50 to Maharashtra State Electricity Distribution Co. Ltd. (MSEDCL). The payee account (DEMO-ELECTRICITY-BOARD) is a verified utility merchant with over 5,000 successful historical payments in the platform seed history. The amount represents less than 0.4% of her available balance.
+  Sending: 1840.5 INR (PAYMENT) to State Electricity Distribution Corp Ltd...
+  ⚡ Instant Decision: ALLOW (Risk: LOW) in 1.043 ms
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▶ Scenario C: Urgent Diagnostic Clinic Payment While Traveling
+  Victim: Mrs. Savitri Devi Kulkarni, traveling to Nagpur for a family event.
+  Story:  While visiting relatives in Nagpur, Mrs. Kulkarni visits an outpatient diagnostics lab for urgent blood tests and an ultrasound. She authorizes an electronic payment of ₹8,500 to a newly encountered merchant UPI ID ('UPI-apexcare.reception@icici'). The recipient has zero prior history in the banking cluster, but the payment leaves 98.3% of her balance intact and occurs during evening clinic hours (7:30 PM). The system flags this for two-step review rather than outright blocking.
+  Sending: 8500.0 INR (PAYMENT) to Apex Care Diagnostics Clinic...
+  ⚡ Instant Decision: ALLOW (Risk: LOW) in 0.337 ms
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Demo scenarios completed.

@@ -1,0 +1,12 @@
+shieldz-api cpu=34.20% mem=134.8MiB / 7.821GiB
+shieldz-explainer cpu=114.12% mem=1.211GiB / 7.821GiB
+shieldz-api cpu=40.75% mem=136MiB / 7.821GiB
+shieldz-explainer cpu=144.84% mem=1.212GiB / 7.821GiB
+shieldz-api cpu=1.77% mem=140MiB / 7.821GiB
+shieldz-explainer cpu=180.22% mem=1.212GiB / 7.821GiB
+shieldz-api cpu=1.70% mem=139.5MiB / 7.821GiB
+shieldz-explainer cpu=179.31% mem=1.213GiB / 7.821GiB
+shieldz-api cpu=0.50% mem=139.5MiB / 7.821GiB
+shieldz-explainer cpu=181.37% mem=1.214GiB / 7.821GiB
+shieldz-api cpu=1.55% mem=139.5MiB / 7.821GiB
+shieldz-explainer cpu=183.07% mem=1.216GiB / 7.821GiB

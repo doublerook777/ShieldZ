@@ -1,0 +1,5 @@
+outbox status counts after the benchmark (pending/running > 0 = explainer was still busy):
+  done: 2887
+  pending: 2087
+  running: 1
+  skipped: 17090

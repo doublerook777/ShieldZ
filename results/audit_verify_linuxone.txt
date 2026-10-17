@@ -1,0 +1,1 @@
+VERIFY PASS: Chain valid: 22062 entries verified OK (183 checkpoint signatures valid)

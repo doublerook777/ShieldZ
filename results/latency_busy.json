@@ -1,0 +1,60 @@
+{
+  "ts": "2026-10-17T19:19:12+00:00",
+  "git_sha": "unknown",
+  "platform": "s390x",
+  "engine": "xgboost",
+  "model_version": "xgb-v1",
+  "n_per_level": 5000,
+  "client_procs": 4,
+  "client_cpus": "1-2",
+  "warmup": 500,
+  "gate_p99_ms": 50.0,
+  "levels": {
+    "1": {
+      "requests": 5000,
+      "errors": 0,
+      "client_ms": {
+        "p50": 1.514,
+        "p95": 3.736,
+        "p99": 11.523,
+        "max": 64.395
+      },
+      "server_ms": {
+        "p50": 0.289,
+        "p95": 0.762,
+        "p99": 0.981,
+        "max": 56.101
+      },
+      "decisions": {
+        "BLOCK": 584,
+        "ALLOW": 4040,
+        "REVIEW": 376
+      },
+      "pass": true
+    },
+    "8": {
+      "requests": 5000,
+      "errors": 0,
+      "client_ms": {
+        "p50": 7.348,
+        "p95": 14.954,
+        "p99": 23.373,
+        "max": 71.18
+      },
+      "server_ms": {
+        "p50": 0.341,
+        "p95": 4.277,
+        "p99": 13.273,
+        "max": 48.293
+      },
+      "decisions": {
+        "ALLOW": 4021,
+        "BLOCK": 589,
+        "REVIEW": 390
+      },
+      "pass": true
+    }
+  },
+  "outbox_rows_added": 10000,
+  "outbox_one_row_per_request": true
+}

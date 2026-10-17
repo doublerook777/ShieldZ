@@ -1,0 +1,2 @@
+{"ts":"2026-10-17T19:17:56.396Z","event":"signer_backend","status":"cryptography"}
+{"ts":"2026-10-17T19:17:56.396Z","event":"startup","engine":"xgboost","model_version":"xgb-v1"}
