@@ -1,0 +1,10 @@
+{
+  "engine": "xgboost",
+  "version": "xgb-v1",
+  "queries": 5000,
+  "p50_ms": 0.438,
+  "p95_ms": 0.842,
+  "p99_ms": 2.24,
+  "max_ms": 16.29,
+  "target_met": true
+}

@@ -1,0 +1,23 @@
+{
+  "engine": "xgboost",
+  "version": "xgb-v1",
+  "test_records": 103573,
+  "test_fraud_count": 1600,
+  "pr_auc": 0.9944,
+  "roc_auc": 0.9999,
+  "recall_at_1pct_fpr": 0.9994,
+  "baseline_pr_auc": 0.039,
+  "gate_m2_prauc_passed": true,
+  "thresholds": {
+    "t_review": 0.7,
+    "t_block": 0.75
+  },
+  "confusion_matrix": {
+    "fraud_blocked": 1598,
+    "fraud_reviewed": 1,
+    "fraud_allowed": 1,
+    "legit_blocked": 79,
+    "legit_reviewed": 0,
+    "legit_allowed": 101894
+  }
+}
