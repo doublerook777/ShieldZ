@@ -9,6 +9,7 @@ Enforces Invariant I2: the rendered prompt contains zero digits.
 from __future__ import annotations
 
 from shieldz.contracts import ExplainJob, Language, ReasonCode
+from shieldz.explainer.template import TemplateExplainer
 
 REASON_DESCRIPTIONS: dict[ReasonCode, str] = {
     ReasonCode.AMOUNT_HIGH_VS_BALANCE: "The payment uses most of the money in the account.",
@@ -29,52 +30,45 @@ LANGUAGE_NAMES: dict[Language, str] = {
     Language.TA: "Tamil",
 }
 
-PROMPT_FOOTER: str = (
-    "Write two or three calm, simple sentences warning an elderly customer. "
-    "Suggest they pause and call their bank on the number printed on their card. "
-    "Do not mention any numbers, names or links."
+# A 350M *base* model cannot compose a warning from a list of codes: measured on the VM it either
+# repeated "Do not mention ..." until the tokens ran out or stated falsehoods ("your account has
+# been drained"). It can rewrite text, so the prompt gives it the human-reviewed English template
+# sentence and asks for simpler words. The two examples are fixed text. Everything in the prompt
+# still comes from enums and constants, with no digits and no request data (I2).
+PROMPT_HEAD: str = (
+    "Rewrite each bank warning in short, simple, calm words for an elderly customer.\n\n"
+)
+PROMPT_EXAMPLES: str = (
+    "Warning: The requested amount is unusually large compared to your normal activity. "
+    "This payment is occurring at an unusual hour. Please pause and verify this transfer by "
+    "calling your bank on the official number on your card before proceeding.\n"
+    "Simple words: This is a very big payment, and it is late at night, which is not like you. "
+    "Please stop for a moment and call your bank on the number on your card.\n\n"
+    "Warning: This payment uses most of the funds in your account. This transfer method is "
+    "commonly targeted by urgent payment scams. Please pause and verify this transfer by calling "
+    "your bank on the official number on your card before proceeding.\n"
+    "Simple words: This payment would use up most of your money, and scammers often ask for "
+    "payments like this. Please wait and call your bank on the number on your card.\n\n"
 )
 
 
 def build_prompt(job: ExplainJob) -> str:
     """Render the canonical LLM prompt from an ExplainJob.
 
-    The output format is strictly deterministic:
-        Decision: <DECISION>. Risk: <RISK>.
-        Reasons:
-        - <CODE> (<LEVEL>): <DESCRIPTION>
-        Language: <LANGUAGE>.
-        <PROMPT_FOOTER>
+        <PROMPT_HEAD><PROMPT_EXAMPLES>Warning: <English template text for the job's reason codes>
+        Simple words:
+
+    The model completes the last line. The prompt always uses the English template, so only
+    English jobs are sent to the LLM (the worker keeps Hindi and Tamil on the reviewed templates).
 
     Guarantees:
         - Zero digits in output (Invariant I2).
-        - No request-specific free text.
+        - No request-specific free text: the only variable part is the template sentence chosen by
+          the reason-code enum values.
     """
-    reasons_list = job.reasons
-    if not reasons_list:
-        desc = REASON_DESCRIPTIONS[ReasonCode.OTHER_PATTERN]
-        reasons_text = f"- {ReasonCode.OTHER_PATTERN.value} ({job.risk_level.value}): {desc}"
-    else:
-        lines: list[str] = []
-        for r in reasons_list:
-            code_enum = r.code if isinstance(r.code, ReasonCode) else ReasonCode(r.code)
-            level_val = r.level.value if hasattr(r.level, "value") else str(r.level)
-            desc = REASON_DESCRIPTIONS.get(code_enum, REASON_DESCRIPTIONS[ReasonCode.OTHER_PATTERN])
-            lines.append(f"- {code_enum.value} ({level_val}): {desc}")
-        reasons_text = "\n".join(lines)
-
-    lang_enum = job.language if isinstance(job.language, Language) else Language(job.language)
-    lang_name = LANGUAGE_NAMES.get(lang_enum, "English")
-    dec_val = job.decision.value if hasattr(job.decision, "value") else str(job.decision)
-    risk_val = job.risk_level.value if hasattr(job.risk_level, "value") else str(job.risk_level)
-
-    prompt = (
-        f"Decision: {dec_val}. Risk: {risk_val}.\n"
-        f"Reasons:\n"
-        f"{reasons_text}\n"
-        f"Language: {lang_name}.\n"
-        f"{PROMPT_FOOTER}"
-    )
+    english = job.model_copy(update={"language": Language.EN})
+    warning = TemplateExplainer().explain(english).text
+    prompt = f"{PROMPT_HEAD}{PROMPT_EXAMPLES}Warning: {warning}\nSimple words:"
 
     # Sanity check: must contain no digits
     if any(c.isdigit() for c in prompt):

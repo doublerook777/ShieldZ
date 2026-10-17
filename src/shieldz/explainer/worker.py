@@ -19,8 +19,8 @@ from typing import Protocol
 
 from shieldz.clock import now_utc
 from shieldz.config import runtime_dir
-from shieldz.contracts import ExplainJob, Explanation, ExplanationSource
-from shieldz.explainer.guard import validate_output, validate_prompt
+from shieldz.contracts import ExplainJob, Explanation, ExplanationSource, Language
+from shieldz.explainer.guard import validate_output, validate_prompt, validate_quality
 from shieldz.explainer.journal import PromptJournal
 from shieldz.explainer.prompt import build_prompt
 from shieldz.explainer.template import TemplateExplainer
@@ -59,8 +59,11 @@ class Worker:
     def process(self, job: ExplainJob) -> Explanation:
         """Template first, LLM second. Returns what ended up stored."""
         final = self.template.explain(job)
-        self.outbox.put_explanation(final, done=self.generator is None)
-        if self.generator is None:
+        # The LLM only rewrites English: a 350M model answers in English whatever the language
+        # line says, so Hindi and Tamil keep their human-written templates.
+        llm = self.generator if job.language == Language.EN else None
+        self.outbox.put_explanation(final, done=llm is None)
+        if llm is None:
             self._journal(job, "", final, guard_passed=True)
             log_event("explained", decision_id=job.decision_id, source=final.source.value)
             return final
@@ -75,6 +78,8 @@ class Worker:
                 if not cached:
                     text = self.generator.generate(prompt).strip()
                 ok, why = validate_output(text)  # cached text is guarded again on the way out
+                if ok:
+                    ok, why = validate_quality(text)
                 if ok and not cached:
                     self.outbox.put_cached(key, text)
         except Exception as exc:  # LLM trouble must never lose the job

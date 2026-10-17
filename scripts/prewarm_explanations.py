@@ -24,7 +24,7 @@ import httpx
 
 import demo_scenarios  # same folder; scripts/ is on sys.path when run as a script
 
-LANGUAGES = ("EN", "HI", "TA")
+LANGUAGES = ("EN",)  # Granite only rewrites English; HI and TA stay on the reviewed templates
 
 
 def ui_shape(payment: dict) -> dict:

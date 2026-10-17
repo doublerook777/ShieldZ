@@ -200,3 +200,34 @@ def test_trim_to_sentence():
     assert trim_to_sentence("Pause now. Call your bank.") == "Pause now. Call your bank."
     assert trim_to_sentence("कृपया रुकें। अपने बैंक को कॉल") == "कृपया रुकें।"
     assert trim_to_sentence("no full sentence here") == "no full sentence here"
+
+
+def test_llm_output_that_loops_or_contradicts_falls_back_to_the_template(box, tmp_path):
+    from shieldz.explainer.guard import validate_quality
+
+    looping = "Do not ask for any information. Do not ask for any information. Do not ask for more."
+    for bad in (
+        looping,
+        "There is no evidence of fraud here, so please call your bank.",
+        "Your account has been drained. Please call your bank.",
+        "This is a new account and the weather is nice today.",  # nothing to do
+    ):
+        assert validate_quality(bad)[0] is False, bad
+    assert validate_quality(GOOD)[0] is True
+
+    box.enqueue(job(1))
+    worker(box, tmp_path, FakeLLM(reply=looping)).run_once()
+    assert box.get_explanation(job(1).decision_id).source == ExplanationSource.TEMPLATE
+
+
+def test_only_english_jobs_go_to_the_llm(box, tmp_path):
+    llm = FakeLLM()
+    hi = job(1).model_copy(update={"language": Language.HI})
+    box.enqueue(hi)
+    box.enqueue(job(2))  # English
+    w = worker(box, tmp_path, llm)
+    w.run_once()
+    w.run_once()
+    assert len(llm.prompts) == 1
+    assert box.get_explanation(hi.decision_id).source == ExplanationSource.TEMPLATE
+    assert box.get_explanation(job(2).decision_id).source == ExplanationSource.GRANITE

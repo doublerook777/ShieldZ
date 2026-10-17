@@ -15,8 +15,8 @@ DEFAULT_MODEL_PATH = Path(
 
 
 # Generation time is linear in tokens (3.8 tok/s on the VM). Two or three short sentences fit in
-# about 48 tokens; 80 made every explanation ~21 s.
-DEFAULT_MAX_TOKENS = int(os.environ.get("SHIELDZ_LLM_MAX_TOKENS", "48"))
+# about 50 tokens; 80 made every explanation ~21 s.
+DEFAULT_MAX_TOKENS = int(os.environ.get("SHIELDZ_LLM_MAX_TOKENS", "56"))
 SENTENCE_END = ".!?\u0964"  # \u0964 is the Devanagari danda used in Hindi
 
 
@@ -77,6 +77,7 @@ class GraniteGenerator:
             prompt,
             max_tokens=max_tokens or DEFAULT_MAX_TOKENS,
             temperature=0.0,
-            stop=["\n\n\n", "Decision:", "User:", "###", "Risk:"],
+            repeat_penalty=1.1,
+            stop=["\n"],  # one line: "Simple words: ..." is a single paragraph
         )
         return trim_to_sentence(response["choices"][0]["text"])

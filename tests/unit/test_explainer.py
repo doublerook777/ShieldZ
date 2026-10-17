@@ -52,9 +52,8 @@ def test_build_prompt_has_no_digits() -> None:
     job = make_job()
     prompt = build_prompt(job)
     assert not any(c.isdigit() for c in prompt), "Invariant I2 violated: prompt contains digits!"
-    assert "Decision: BLOCK. Risk: HIGH." in prompt
-    assert "AMOUNT_HIGH_VS_BALANCE" in prompt
-    assert "Language: English." in prompt
+    assert prompt.endswith("\nSimple words:")
+    assert "This payment uses most of the funds in your account." in prompt  # from the enum
 
 
 def test_validate_prompt_valid() -> None:
@@ -75,7 +74,7 @@ def test_validate_prompt_rejects_injected_digits() -> None:
 
 def test_validate_prompt_rejects_injected_name() -> None:
     job = make_job()
-    prompt = build_prompt(job).replace("English.", "English.\nPayer Name: Ramesh")
+    prompt = build_prompt(job).replace("Simple words:", "Payer Name: Ramesh\nSimple words:")
     valid, reason = validate_prompt(prompt, job)
     assert valid is False
     assert "canonical" in reason.lower()

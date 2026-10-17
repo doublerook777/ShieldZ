@@ -96,3 +96,34 @@ def validate_output(text: str) -> tuple[bool, str]:
         return False, "Output contains @ symbol or email address"
 
     return True, "OK"
+
+
+# Phrases a small model produced when it lost the thread; each is wrong or harmful in a warning.
+_BAD_PHRASES = (
+    "no evidence", "not a scam", "no risk", "is safe", "nothing to worry", "do not mention",
+    "i'm sorry", "i am sorry", "as an ai", "has been drained", "has been closed",
+)  # fmt: skip
+_RE_ADVICE = re.compile(r"\b(call|pause|stop|wait|verify|check|confirm|contact)\b", re.I)
+_RE_SENTENCES = re.compile(r"(?<=[.!?\u0964])\s+")
+
+
+def validate_quality(text: str) -> tuple[bool, str]:
+    """Reject output that is PII-free but useless or misleading (`validate_output` only checks PII).
+
+    A 350M base model loops ("Do not mention ... Do not mention ..."), contradicts the decision, or
+    forgets to tell the customer what to do. Such text falls back to the template instead.
+    """
+    cleaned = text.strip()
+    lowered = cleaned.lower()
+    for phrase in _BAD_PHRASES:
+        if phrase in lowered:
+            return False, f"Output contains '{phrase}'"
+    sentences = [x.strip().lower() for x in _RE_SENTENCES.split(cleaned) if x.strip()]
+    if len(sentences) != len(set(sentences)):
+        return False, "Output repeats a sentence"
+    words = re.findall(r"\w+", lowered)
+    if len(words) >= 12 and len(set(words)) / len(words) < 0.5:
+        return False, "Output is repetitive"
+    if not _RE_ADVICE.search(cleaned):
+        return False, "Output gives the customer nothing to do"
+    return True, "OK"
