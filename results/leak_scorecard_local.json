@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-10-17T13:47:17.420775+00:00",
+  "timestamp": "2026-10-17T14:04:43.930431+00:00",
   "environment": "local",
   "platform": "arm64",
-  "git_sha": "daad8526bb7722051089c5cfc055e27d1939b83e",
+  "git_sha": "398268daa365a6cf2d3783d5588f88c340903263",
   "records_replayed": 1000,
   "sinks_scanned": 6,
-  "total_bytes_scanned": 631919,
+  "total_bytes_scanned": 793919,
   "bytes_per_sink": {
-    "app_log": 511920,
+    "app_log": 673920,
     "audit_chain": 0,
     "prompt_journal": 0,
     "outbox_sqlite": 0,
