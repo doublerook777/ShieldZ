@@ -24,9 +24,14 @@ import numpy as np
 
 from shieldz.contracts import DecisionKind, ExplainJob, Language, Level, Reason, ReasonCode
 from shieldz.explainer.granite import GraniteGenerator
-from shieldz.explainer.guard import validate_output, validate_prompt, validate_quality
+from shieldz.explainer.guard import (
+    compose_explanation,
+    validate_output,
+    validate_prompt,
+    validate_quality,
+)
 from shieldz.explainer.prompt import build_prompt
-from shieldz.explainer.template import TemplateExplainer
+from shieldz.explainer.template import FOOTER_EN, TemplateExplainer
 
 GATE_RATE = 0.8
 
@@ -54,12 +59,13 @@ def main(args: argparse.Namespace) -> int:
         prompt = build_prompt(job)
         assert validate_prompt(prompt, job)[0]
         t0 = time.monotonic()
-        text = llm.generate(prompt).strip()
+        raw = llm.generate(prompt).strip()
         seconds = time.monotonic() - t0
+        text = compose_explanation(raw, FOOTER_EN) or ""  # exactly what the worker stores
         ok, why = validate_output(text)
         if ok:
             ok, why = validate_quality(text)
-        rows.append((job, text, ok, why, seconds))
+        rows.append((job, text, ok, why, seconds, raw))
         print(
             f"{'PASS' if ok else 'FAIL'} {seconds:5.1f}s {[c.value for c in chosen]}: {text[:90]}"
         )
@@ -79,12 +85,13 @@ def main(args: argparse.Namespace) -> int:
         "## Every output",
     ]
     template = TemplateExplainer()
-    for job, text, ok, why, seconds in rows:
+    for job, text, ok, why, seconds, raw in rows:
         lines += [
             "",
             f"### {', '.join(r.code.value for r in job.reasons)}  "
             f"({'PASS' if ok else 'FAIL: ' + why}, {seconds:.1f} s)",
-            f"- Granite: {text}",
+            f"- Model said: {raw}",
+            f"- Stored (explanation + fixed action): {text or '(rejected: template is used)'}",
             f"- Template: {template.explain(job).text}",
         ]
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)

@@ -20,10 +20,15 @@ from typing import Protocol
 from shieldz.clock import now_utc
 from shieldz.config import runtime_dir
 from shieldz.contracts import ExplainJob, Explanation, ExplanationSource, Language
-from shieldz.explainer.guard import validate_output, validate_prompt, validate_quality
+from shieldz.explainer.guard import (
+    compose_explanation,
+    validate_output,
+    validate_prompt,
+    validate_quality,
+)
 from shieldz.explainer.journal import PromptJournal
 from shieldz.explainer.prompt import build_prompt
-from shieldz.explainer.template import TemplateExplainer
+from shieldz.explainer.template import FOOTER_EN, TemplateExplainer
 from shieldz.outbox.queue import FAILED, Outbox
 from shieldz.privacy.redact_log import log_event, setup_logging
 
@@ -77,6 +82,8 @@ class Worker:
                 cached = bool(text)
                 if not cached:
                     text = self.generator.generate(prompt).strip()
+                    composed = compose_explanation(text, FOOTER_EN)
+                    text = composed or ""
                 ok, why = validate_output(text)  # cached text is guarded again on the way out
                 if ok:
                     ok, why = validate_quality(text)

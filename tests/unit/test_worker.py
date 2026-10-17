@@ -16,10 +16,14 @@ from shieldz.contracts import (
     ReasonCode,
 )
 from shieldz.explainer.journal import PromptJournal, load_journal
+from shieldz.explainer.template import FOOTER_EN
 from shieldz.explainer.worker import Worker, load_generator
 from shieldz.outbox.queue import DONE, FAILED, PENDING, RUNNING, Outbox
 
-GOOD = "Please pause for a moment and call your bank on the number printed on your card."
+WHY = "This payment would use up most of your money, and scammers often ask for payments like this."
+# What the model says: an explanation, then advice that the worker must throw away
+GOOD = WHY + " Please wait and call your bank on their number."
+FINAL = WHY + " " + FOOTER_EN  # what is stored: the explanation plus the fixed, safe action
 
 
 class FakeLLM:
@@ -67,7 +71,7 @@ def test_llm_text_replaces_template_when_guard_passes(box, tmp_path):
     box.enqueue(job())
     worker(box, tmp_path, llm).run_once()
     got = box.get_explanation(job().decision_id)
-    assert got.source == ExplanationSource.GRANITE and got.text == GOOD
+    assert got.source == ExplanationSource.GRANITE and got.text == FINAL
     assert len(llm.prompts) == 1 and not any(c.isdigit() for c in llm.prompts[0])
     [entry] = load_journal(tmp_path / "prompts.jsonl")
     assert entry["guard_passed"] is True and entry["source"] == "granite"
@@ -159,7 +163,7 @@ def test_same_prompt_is_generated_once_then_served_from_the_cache(box, tmp_path)
     w.run_once()
     assert len(llm.prompts) == 1
     texts = {box.get_explanation(job(i).decision_id).text for i in (1, 2)}
-    assert texts == {GOOD}
+    assert texts == {FINAL}
     assert box.get_explanation(job(2).decision_id).source == ExplanationSource.GRANITE
 
 
@@ -213,7 +217,7 @@ def test_llm_output_that_loops_or_contradicts_falls_back_to_the_template(box, tm
         "This is a new account and the weather is nice today.",  # nothing to do
     ):
         assert validate_quality(bad)[0] is False, bad
-    assert validate_quality(GOOD)[0] is True
+    assert validate_quality(FINAL)[0] is True
 
     box.enqueue(job(1))
     worker(box, tmp_path, FakeLLM(reply=looping)).run_once()
@@ -231,3 +235,20 @@ def test_only_english_jobs_go_to_the_llm(box, tmp_path):
     assert len(llm.prompts) == 1
     assert box.get_explanation(hi.decision_id).source == ExplanationSource.TEMPLATE
     assert box.get_explanation(job(2).decision_id).source == ExplanationSource.GRANITE
+
+
+def test_the_models_own_advice_is_never_shown(box, tmp_path):
+    """A 350M model said "call their number" / "the number they give you": the scammer's number."""
+    from shieldz.explainer.guard import compose_explanation
+
+    assert compose_explanation(GOOD, FOOTER_EN) == FINAL
+    assert "their number" not in FINAL and "official number on your card" in FINAL
+    only_advice = "Please call the number they give you."
+    assert compose_explanation(only_advice, FOOTER_EN) is None
+    # advice in the middle: everything from the first advice sentence on is dropped
+    mixed = "This is a new account. Please wait. Scammers love this."
+    assert compose_explanation(mixed, FOOTER_EN) == "This is a new account. " + FOOTER_EN
+
+    box.enqueue(job(1))
+    worker(box, tmp_path, FakeLLM(reply=only_advice)).run_once()
+    assert box.get_explanation(job(1).decision_id).source == ExplanationSource.TEMPLATE

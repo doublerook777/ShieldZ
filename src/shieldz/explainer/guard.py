@@ -102,6 +102,7 @@ def validate_output(text: str) -> tuple[bool, str]:
 _BAD_PHRASES = (
     "no evidence", "not a scam", "no risk", "is safe", "nothing to worry", "do not mention",
     "i'm sorry", "i am sorry", "as an ai", "has been drained", "has been closed",
+    "you have not received", "their number", "they give", "they gave",
 )  # fmt: skip
 _RE_ADVICE = re.compile(r"\b(call|pause|stop|wait|verify|check|confirm|contact)\b", re.I)
 _RE_SENTENCES = re.compile(r"(?<=[.!?\u0964])\s+")
@@ -127,3 +128,25 @@ def validate_quality(text: str) -> tuple[bool, str]:
     if not _RE_ADVICE.search(cleaned):
         return False, "Output gives the customer nothing to do"
     return True, "OK"
+
+
+def compose_explanation(model_text: str, safe_action: str) -> str | None:
+    """Keep what the model said about WHY, and replace everything it said about WHAT TO DO.
+
+    A 350M model told customers to call "their number" or "the number they give you"; in a
+    digital-arrest scam the scammer supplies that number. So the action sentence is always the fixed
+    one from the human-written template, and any sentence of the model's that gives advice is
+    dropped. Returns None when no explanatory sentence is left (the template is used instead).
+    """
+    kept = []
+    for sentence in _RE_SENTENCES.split(model_text.strip()):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if _RE_ADVICE.search(sentence):
+            break  # the explanation comes first; from the first piece of advice on, drop the rest
+        kept.append(sentence)
+    why = " ".join(kept)
+    if len(why) < 20:
+        return None
+    return f"{why} {safe_action}"
