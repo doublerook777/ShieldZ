@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 19:20 IST · M6 tamper-evident audit trail & Ed25519 signing completed on `m6/proof-audit-trail` (Member 2, Antigravity) |
+| **Last updated** | 2026-10-17 19:35 IST · M5 explainer proof components completed on `m5/proof-explainer-guard` (Member 2, Antigravity) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M6 ✅ local (Member 2, `m6/proof-audit-trail`) · M1/M3 waiting on VM (Member 3) · M5 next for Member 2 |
-| **Active branches** | main · `m6/proof-audit-trail` (Member 2, pushed) |
+| **Current milestone** | M4 ✅ · M6 ✅ local (`m6/proof-audit-trail`) · M5 ✅ local proof (`m5/proof-explainer-guard`) · VM checks pending for Member 3 |
+| **Active branches** | main · `m6/proof-audit-trail` (pushed) · `m5/proof-explainer-guard` (pushed) |
 | **Blockers** | None. VM checks pending for Member 3 |
 | **Main-build baton** | Member 1 · branch: — |
-| **Next action** | Member 2: M5 Granite explainer (prompt, allowlist guard, template fallback). Member 3: M0 VM spikes, M1 golden parity + M2 (model). |
+| **Next action** | Member 3: M0 VM spikes, M1 golden parity + M2 (model), and M5 VM explainer worker (Granite container). Member 4: pitch & review. |
 
 ---
 
@@ -71,7 +71,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 - [ ] VM 0 leaks (scorecard: ___) · [x] All sink types scanned (6 sinks, 469,919 bytes)
 
 ### M5 — Granite explainer
-- [ ] Guard tests + fuzz · [ ] Explanation p50 on VM (got ___ s)
+- [x] Guard tests + fuzz (1,000 fuzzed prompts → 0 accepted) · [ ] Explanation p50 on VM (got ___ s)
 - [ ] p99 < 50 ms with explainer busy (got ___) · [ ] Leak Audit with real Granite = 0 · [ ] Sample explanations saved
 
 ### M6 — Audit trail
@@ -123,6 +123,19 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 19:35 IST · Member 2 (Antigravity) · proof build · M5 (explainer proof components)
+- Did: Implemented Member 2's M5 components on branch `m5/proof-explainer-guard`:
+  - `prompt.py`: Canonical prompt renderer strictly from `ExplainJob` enums and reason codes (Invariant I2: zero digits, no request free-text).
+  - `guard.py`: Input firewall (byte-for-byte template check, zero digits assertion) + Output guard (rejects 4+ digits, ₹/Rs/INR currency patterns, phone patterns, URLs, @/email; permits small counts like "24 hours", "3 steps").
+  - `template.py`: Deterministic `TemplateExplainer` fallback with human-written warnings in English, Hindi, and Tamil.
+  - `journal.py`: `PromptJournal` thread-safe audit log for prompt & output auditing (registered Leak Audit sink).
+  - `tests/unit/test_explainer.py`: 12 tests covering prompt building, input guard, output guard, templates, journal, and 1,000 fuzzed prompts rejection test (Gate M5 passed).
+- Evidence: `make test` 85 passed in 1.29s, `make lint` clean, `make leak-audit` PASS (0 leaks across 6 sinks, 793,919 bytes scanned).
+- Branch / commit: `m5/proof-explainer-guard` pushed (`c92db6c`).
+- State left in: Member 2's M5 components ✅ done. VM-side explainer worker (`granite.py`, `worker.py`, llama.cpp container) belongs to Member 3.
+- Next step: Hand off / sync with Member 1 & Member 3 for VM gates, or support demo scenarios (M7).
+- Gotchas: Standalone 3-digit currency checks tested without triggering 4+ digit rules. All Hindi/Tamil templates verified against PII output guard.
 
 ### 2026-10-17 19:20 IST · Member 2 (Antigravity) · proof build · M6 (audit trail)
 - Did: Implemented full M6 tamper-evident audit trail on branch `m6/proof-audit-trail`.
