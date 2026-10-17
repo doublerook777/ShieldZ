@@ -2,8 +2,8 @@
 
 **Result:** ✅ PASS (0 Leaks)  
 **Environment:** `local` (`arm64`)  
-**Git SHA:** `918581768c`  
-**Timestamp:** `2026-10-17T12:04:18.978841+00:00`  
+**Git SHA:** `daad8526bb`  
+**Timestamp:** `2026-10-17T13:47:17.420775+00:00`  
 
 ---
 
@@ -12,7 +12,7 @@
 |---|---|---|---|
 | **Canary Identities Replayed** | **1,000** | 1,000 | ✅ |
 | **Total Sinks Scanned** | **6** | All registered + catch-all | ✅ |
-| **Total Volume Scanned** | **469,919 bytes** | > 0 | ✅ |
+| **Total Volume Scanned** | **631,919 bytes** | > 0 | ✅ |
 | **Exact PII Leaks** | **0** | **0** | ✅ |
 | **Variant PII Leaks** | **0** | **0** | ✅ |
 | **Partial PII Leaks** | **0** | **0** | ✅ |
@@ -24,7 +24,7 @@
 ### Sinks Scanned
 | Sink Name | Bytes Inspected |
 |---|---|
-| `app_log` | 349,920 bytes |
+| `app_log` | 511,920 bytes |
 | `audit_chain` | 0 bytes |
 | `history_sqlite` | 0 bytes |
 | `http_responses` | 119,999 bytes |
