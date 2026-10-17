@@ -50,6 +50,7 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 
 | ID | Title | Type | For | Status |
 |---|---|---|---|---|
+| [C-004](#c-004--review-the-m1-contracts-before-they-freeze) | Review the M1 contracts before they freeze | proposal | Members 2, 3, 4 | 🟡 open |
 | [C-003](#c-003--should-claudemd-stay-gitignored) | Should `CLAUDE.md` stay gitignored? | question | team lead | ✅ resolved |
 | [C-002](#c-002--is-the-github-repo-public-or-does-the-vm-need-a-deploy-key) | Is the GitHub repo public, or does the VM need a deploy key? | question | team lead, Member 3 | ✅ resolved |
 | [C-001](#c-001--deep-project-analysis-bugs-shortcomings--critique) | Deep project analysis, bugs, shortcomings & critique | critique | everyone | ✅ resolved |
@@ -57,6 +58,34 @@ The place where members and their AI agents **raise critiques, ask questions, pr
 ---
 
 # Threads
+
+## C-004 · Review the M1 contracts before they freeze
+**Type:** proposal · **Status:** 🟡 open · **Opened by:** Member 1 (Claude Code), 2026-10-17 IST · **For:** Members 2, 3, 4 · **Related:** branch `m1/contracts-privacy`, `src/shieldz/contracts.py`, plan M1 gate
+
+The M1 branch is pushed. `contracts.py` freezes once Members 2, 3 and 4 have looked at it, so please read it now (about 10 minutes) and reply "OK" or list changes. Choices that differ from, or add to, the plan text:
+
+1. **`strip()` returns only `FeatureInput`.** The tokens are fields inside it (`payee_token`, `payer_token`), not a separate tuple element.
+2. **`FeatureInput` keeps `hour_of_day`, not the full timestamp.** The hour is all the features need, and it leaves less to leak.
+3. **PII barrier test wording.** The M1 gate says `strip()` output has no "exact amount string". But `engineer()` needs the amount and balances, so `FeatureInput` must carry them as numbers. The test checks name, phone, account (formatted and raw), memo and family contact. Amount and balances are the only raw numbers, and only `FeatureVector` (ratios, `log1p`) continues past `engineer()`. If you want the amount gone earlier, `strip` would have to compute features itself. I'd rather keep the split.
+4. **Added to contracts** (Member 2: you will use some of these):
+   - `Reason(code, level)`, a model used in `Decision`, `ExplainJob` and `AuditEntry`;
+   - `Explanation(decision_id, text, source, language)` plus `ExplanationSource` (`granite|template`);
+   - `AuditCheckpoint(seq, head_hash, ts, signature)`;
+   - `Language` (`EN|HI|TA`);
+   - `safe_errors(exc)`, which gives field paths and error types without the input values (`exc.json()` echoes them even with `hide_input_in_errors`, so the M3 422 handler must use this).
+5. **`Engine` protocol** (Member 3): `name`, `version`, `score(FeatureVector) -> float`, `reasons(FeatureVector) -> list[tuple[ReasonCode, Level]]`. The service turns the tuples into `Reason` models.
+6. **`FeatureVector` is 12 numeric fields**, in `FEATURE_ORDER`: five `type_*` one-hots, `log_amount`, `amount_to_balance`, `drains_account`, `payee_is_merchant`, `payee_prior_inbound`, `payee_balance_before_zero`, `hour_of_day`.
+   - `payee_prior_inbound` is the **bucket** (0 = none, 1 = 1–3, 2 = 4+), not a raw count.
+   - `payee_balance_before_zero` is 1 only when the payee balance is known and zero (PaySim: NaN = unknown).
+   - For training, call `engineer_frame(df)` with columns `tx_type, amount, payer_balance_before, payee_balance_before, payee_is_merchant, hour_of_day, payee_prior_inbound` (the raw chronological count; the bucketing happens inside).
+7. **Demo payees for scenario (b)** (Member 4): the seed file has `DEMO-ELECTRICITY-BOARD`, `DEMO-WATER-UTILITY`, `DEMO-GAS-AGENCY`, `DEMO-PHARMACY-MAIN-ROAD` (all `4+` bucket) and `DEMO-GRANDSON-SAVINGS`.
+
+**Replies**
+- _(none yet)_
+
+**Outcome:** _(when closing: "contracts frozen at commit …")_
+
+---
 
 ## C-003 · Should `CLAUDE.md` stay gitignored?
 **Type:** question · **Status:** ✅ resolved · **Opened by:** agent (Claude Code), 2026-10-17 17:10 IST · **For:** team lead · **Related:** `.gitignore`, `AGENTS.md`

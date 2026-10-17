@@ -10,13 +10,13 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 · M0 skeleton pushed on `m0/infra-skeleton` (Member 1, Claude Code) |
+| **Last updated** | 2026-10-17 · M1 main-build tasks done on `m1/contracts-privacy` (Member 1, Claude Code) |
 | **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
-| **Current milestone** | M0 — not started (critique reviewed and folded into the docs, ADR D16) |
-| **Active branches** | main · `m0/infra-skeleton` (Member 1, awaiting review/merge) |
+| **Current milestone** | M0 (Members 2, 3, 4 spikes pending) · M1 main build done, waiting for contract review (C-004) |
+| **Active branches** | main · `m1/contracts-privacy` (Member 1, awaiting review) |
 | **Blockers** | none |
-| **Main-build baton** | Member 1 · branch: `m0/infra-skeleton` |
+| **Main-build baton** | Member 1 · branch: `m1/contracts-privacy` |
 | **Next action** | M0 now (we're behind schedule). Member 1: repo skeleton · Member 3: VM facts + spikes (signing: try apt `python3-cryptography` first) · Member 2: PaySim + licence · Member 4: pitch statistics |
 
 ---
@@ -106,7 +106,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ## Open questions
 
-Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: none. (C-002 resolved: repo is private for now, so the VM uses a deploy key; make it public in M8. C-003 resolved: `CLAUDE.md` stays gitignored.)
+Open questions now live in [conversation.md](conversation.md) as numbered threads (see its index). Currently open: C-004 (review the M1 contracts, Members 2/3/4). (C-002 resolved: repo is private for now, so the VM uses a deploy key; make it public in M8. C-003 resolved: `CLAUDE.md` stays gitignored.)
 
 ---
 
@@ -122,6 +122,14 @@ Entry template:
 - Next step: …
 - Gotchas: …
 ```
+
+### 2026-10-17 (night) IST · Member 1 (Claude Code) · main build · M1
+- Did: skeleton merged to `main` (7393706). On `m1/contracts-privacy`: `contracts.py`, `config.py`, `privacy/{tokenize,strip}.py`, `features/{engineer,history}.py` + `demo_seed.csv`, `tests/golden/features_v1.csv` (200 rows) and `scripts/make_golden_features.py`. `engineer` and `engineer_frame` share one numpy code path.
+- Evidence: laptop `make test` 45 passed, `make lint` clean. Covers contract validation, PII barrier (`tests/unit/test_strip.py::test_no_pii_in_output`), drain / mule / new-recipient rows, no post-transaction columns, cold-start seed, serving-vs-batch parity, golden parity.
+- Branch / commit: `m1/contracts-privacy` pushed, not merged. Contracts review is open as C-004.
+- Still open for the M1 gate: golden parity on the VM (`make z-gate` needs the Containerfile, so use the notebook container: `docker exec notebook /opt/venv/bin/python -m pytest tests/unit/test_features.py`), full PaySim load (Member 3, task 6), review by Members 2/3/4, then freeze.
+- Gotchas: pydantic's `exc.json()` echoes the input even with `hide_input_in_errors`; use `contracts.safe_errors`. The gate's "exact amount" wording can't apply to `FeatureInput` (see C-004 point 3).
+- Next step: M3 stub engine and service once the contracts are frozen; meanwhile `outbox/queue.py` and `privacy/redact_log.py` don't depend on the freeze.
 
 ### 2026-10-17 (evening) IST · Member 1 (Claude Code) · main build · M0 task 7/8
 - Did: repo skeleton on `m0/infra-skeleton`: `src/shieldz/` tree (empty packages), `pyproject.toml`, `pytest.ini` (markers z/llm/slow), `requirements/{z-preinstalled,z-extra,local-dev}.txt` pinned to the image versions, `Makefile` (test, lint, fmt, doctor, z-doctor, z-build, z-gate, z-up/down, bench, verify), `scripts/z_doctor.py`, `scripts/check_deps.py`, smoke test.
