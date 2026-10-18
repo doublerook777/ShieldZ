@@ -1,10 +1,10 @@
 """The one place personal data is touched (invariant I1).
 
-`strip` is the only code that reads a `PaymentRequest`'s personal fields (the route handler and
-`Pipeline.handle` hold the object but only pass it on; `test_only_strip_reads_personal_fields`
-enforces this). Names, phone, memo and family contact are dropped. Account ids become keyed HMAC tokens. Amount and balances
-stay as numbers because the feature step needs them; `engineer()` turns them into ratios and
-they go no further than memory.
+`strip` is the only code that reads a `PaymentRequest`'s personal fields. The route handler and
+`Pipeline.handle` hold the object but only pass it on, and `test_only_strip_reads_personal_fields`
+enforces this. Names, phone, memo and family contact are dropped. Account ids become keyed HMAC
+tokens. Amount and balances stay as numbers because the feature step needs them; `engineer()`
+turns them into ratios and they go no further than memory.
 """
 
 from __future__ import annotations
