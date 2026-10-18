@@ -71,7 +71,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ### M4 — Canary Leak Audit (never cut)
 - [x] Scanner variant tests · [x] Positive control 10/10 · [x] Local 0 leaks (`results/leak_scorecard_local.md`: 11 sinks, 2,146,647 bytes scanned with `--live`)
-- [x] VM 0 leaks (`results/leak_scorecard_linuxone.md`) · [x] All sink types scanned. Re-run on s390x with the real Granite worker and the final code: 11 sinks, 4,785,991 bytes, 0 exact / 0 variant / 0 partial, positive control 10/10, negative control 0/1000 hits (`results/leak_scorecard_linuxone.md`; run in a separate runtime dir so it cannot touch the live audit chain)
+- [x] VM 0 leaks (`results/leak_scorecard_linuxone.md`) · [x] All sink types scanned. Re-run on s390x with the trained XGBoost model (`SHIELDZ_ENGINE=xgboost`) and the real Granite worker, in-process through the FastAPI app, in a scratch runtime dir: 11 sinks, 3,760,623 bytes (the 4,785,991-byte run before it used the rule-based stub engine by mistake: the audit defaults to `SHIELDZ_ENGINE=stub`), 0 exact / 0 variant / 0 partial, positive control 10/10, negative control 0/1000 hits (`results/leak_scorecard_linuxone.md`; run in a separate runtime dir so it cannot touch the live audit chain)
 
 ### M5 — Granite explainer
 - [x] Guard tests + fuzz (1,000 fuzzed prompts → 0 accepted) · [x] Explanation time on VM: 10.4 s p50, 11.2 s p95 per fresh generation (`results/granite_quality.md`; the template text is shown at once)
