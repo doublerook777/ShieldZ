@@ -109,7 +109,9 @@ def test_static_page_is_served_without_shadowing_the_api(tmp_path, monkeypatch):
         outbox=Outbox(tmp_path / "outbox.sqlite"),
     )
     with TestClient(create_app(pipeline)) as client:
-        assert "<title>demo</title>" in client.get("/").text
+        page = client.get("/")
+        assert "<title>demo</title>" in page.text
+        assert page.headers["cache-control"] == "no-cache"
         assert client.get("/healthz").json()["status"] == "ok"
         assert client.get("/v1/leak-scorecard").status_code == 404  # an API route, not a file
 

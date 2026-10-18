@@ -35,6 +35,15 @@ SCORECARD_FIELDS = (
 )  # fmt: skip
 
 
+class DemoFiles(StaticFiles):
+    """The demo page is edited often; browsers must ask again instead of reusing an old copy."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 def create_app(pipeline: Pipeline | None = None) -> FastAPI:
     owns_pipeline = pipeline is None
 
@@ -107,6 +116,6 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
         return JSONResponse(status_code=404, content={"detail": "no scorecard yet"})
 
     if STATIC_DIR.is_dir():  # the demo page (Member 4); mounted last so it can't shadow the API
-        app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+        app.mount("/", DemoFiles(directory=STATIC_DIR, html=True), name="static")
 
     return app
