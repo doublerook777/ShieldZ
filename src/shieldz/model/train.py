@@ -70,6 +70,7 @@ def train_xgboost(
         evals_result=evals_result,
         verbose_eval=10,
     )
+    booster.evals_result_ = evals_result  # per-round metrics, kept for the training notebook's plots
     return booster
 
 
