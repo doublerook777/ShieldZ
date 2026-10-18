@@ -76,7 +76,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 ### M5 — Granite explainer
 - [x] Guard tests + fuzz (1,000 fuzzed prompts → 0 accepted) · [x] Explanation time on VM: 10.4 s p50, 11.2 s p95 per fresh generation (`results/granite_quality.md`; the template text is shown at once)
 - [x] p99 < 50 ms with explainer busy (see M3) · [x] Leak Audit with real Granite = 0 · [x] `granite_quality.md` has every output next to its template
-- [x] ≥ 80% of fresh prompts written by Granite: 28 of 30 distinct prompts (93%) pass the output and quality guards; the 2 others use the template. **Not** the earlier "50/50 = 100%": those 100 texts were junk loops that passed the old PII-only guard (C-008)
+- [x] ≥ 80% of fresh prompts written by Granite: 29 of 30 distinct prompts (97%) pass the output and quality guards (final prompt, `c12b386`+`6e5a90e`; fresh generation p50 10.0 s); the 2 others use the template. **Not** the earlier "50/50 = 100%": those 100 texts were junk loops that passed the old PII-only guard (C-008)
 - [x] 0 `database is locked` lines in either container log after 22k+ requests and 2,000+ jobs. Not run as a dedicated 5,000-job test.
 - Limits to state honestly: Granite 350M base rewrites English only (HI/TA use reviewed templates); the action sentence is always the template's because the model told customers to call "their number"
 
