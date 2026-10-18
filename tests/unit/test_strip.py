@@ -111,3 +111,27 @@ def test_pepper_is_created_once_with_private_permissions(tmp_path):
 
 def test_tokenizer_repr_hides_pepper():
     assert "AAAA" not in repr(Tokenizer(b"A" * 32))
+
+
+def test_only_strip_reads_personal_fields():
+    """I1 as a source check: no code in the service reads a personal field of a request except
+    `privacy/strip.py`, and `strip` reads only the account ids (to hash them). The leak audit's
+    fake-customer generator has attributes with the same names, so it is excluded."""
+    import ast
+    from pathlib import Path
+
+    personal = {"payer_name", "payer_phone", "payee_name", "memo", "family_contact"}
+    accounts = {"payer_account", "payee_account"}
+    src = Path(__file__).parents[2] / "src" / "shieldz"
+    for path in src.rglob("*.py"):
+        rel = path.relative_to(src).as_posix()
+        if rel.startswith("leak_audit/"):
+            continue
+        reads = {
+            node.attr
+            for node in ast.walk(ast.parse(path.read_text()))
+            if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load)
+        }
+        assert not (reads & personal), f"{rel} reads {sorted(reads & personal)}"
+        if rel != "privacy/strip.py":
+            assert not (reads & accounts), f"{rel} reads {sorted(reads & accounts)}"
