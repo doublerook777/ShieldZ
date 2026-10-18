@@ -90,7 +90,7 @@ Three notebooks, each saved **with its outputs from the LinuxONE VM (s390x)**, s
 |---|---|
 | [`notebooks/shieldz_walkthrough.ipynb`](notebooks/shieldz_walkthrough.ipynb) | The whole story step by step: one payment and what the system kept, the four demo payments, what the model alone would decide versus the policy rule, real-time latency, a live Canary Leak Audit, and tamper detection. |
 | [`notebooks/xgboost_training_paysim.ipynb`](notebooks/xgboost_training_paysim.ipynb) | Training the detector on the VM: the full PaySim dataset (6.36 million rows) loads in 16 s and trains in 19 s on 3 cores, and reproduces the model card exactly. Plots: fraud by type and by day, learning curve, precision-recall curve, score distribution, feature importance, one payment's reason codes, the model against simple rules and tiny trees, and the confusion matrix. |
-| [`notebooks/ibm_granite_explainer.ipynb`](notebooks/ibm_granite_explainer.ipynb) | IBM Granite 4.0 (350M) running on s390x: the prompt (fixed text, no digits), one generation step by step (what the model wrote, what is kept, what is dropped), the guards tested with bad outputs, the text cache, quality across many prompts, and why Hindi and Tamil use reviewed templates. |
+| [`notebooks/ibm_granite.ipynb`](notebooks/ibm_granite.ipynb) | IBM Granite 4.0 (350M) running on s390x: the prompt (fixed text, no digits), one generation step by step (what the model wrote, what is kept, what is dropped), the guards tested with bad outputs, the text cache, quality across many prompts, and why Hindi and Tamil use reviewed templates. |
 
 To run them on the VM, open JupyterLab, go to `shared/ShieldZ/notebooks`, and use Kernel, then Restart Kernel and Run All Cells (each takes seconds to a couple of minutes).
 
