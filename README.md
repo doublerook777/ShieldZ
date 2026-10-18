@@ -45,6 +45,7 @@ All numbers come from files in [`results/`](results/) and were produced on the L
 | Tamper-evident audit trail | 22,086 entries and 190 signatures verified; one append costs p99 0.033 ms | `audit_verify_linuxone.txt`, `audit_append_bench.txt` |
 | Granite explanations | 29 of 30 distinct prompts pass the guards; 10 s per fresh generation, instant when cached | `granite_quality.md` |
 | Detector | PR-AUC 0.994 and recall 0.999 at 1% false alarms on a time-based holdout | `MODEL_CARD.md` |
+| Training on LinuxONE | full PaySim (6.36 million rows) loaded in 16 s and trained in 19 s on 3 cores; the run reproduces the model card | `notebooks/xgboost_training_paysim.ipynb` |
 | Demo payments (real model) | scam transfer BLOCK 3.8 ms; electricity bill ALLOW 1.5 ms; clinic payment ALLOW 1.4 ms; large transfer to a new account REVIEW 1.6 ms | `z_demo_run.txt` |
 | Tests | 140 automated test cases, including the privacy, tamper and guard checks | `tests/` |
 
@@ -81,7 +82,17 @@ ssh -N -L 8000:localhost:8000 linux1@<vm-ip>   # then open http://localhost:8000
 bash scripts/z_evidence.sh                 # reproduce the VM evidence in results/
 ```
 
-A notebook that runs the whole story step by step, with its outputs from the LinuxONE VM (s390x, trained model), is in [notebooks/shieldz_walkthrough.ipynb](notebooks/shieldz_walkthrough.ipynb).
+## Notebooks
+
+Three notebooks, each saved **with its outputs from the LinuxONE VM (s390x)**, so they can be read on GitHub without running anything. They call the project's own code (`shieldz`) and only add the explanation and the plots. All three work in a scratch folder and never touch the deployed model or the live demo.
+
+| Notebook | What it shows |
+|---|---|
+| [`notebooks/shieldz_walkthrough.ipynb`](notebooks/shieldz_walkthrough.ipynb) | The whole story step by step: one payment and what the system kept, the four demo payments, what the model alone would decide versus the policy rule, real-time latency, a live Canary Leak Audit, and tamper detection. |
+| [`notebooks/xgboost_training_paysim.ipynb`](notebooks/xgboost_training_paysim.ipynb) | Training the detector on the VM: the full PaySim dataset (6.36 million rows) loads in 16 s and trains in 19 s on 3 cores, and reproduces the model card exactly. Plots: fraud by type and by day, learning curve, precision-recall curve, score distribution, feature importance, one payment's reason codes, the model against simple rules and tiny trees, and the confusion matrix. |
+| [`notebooks/ibm_granite_explainer.ipynb`](notebooks/ibm_granite_explainer.ipynb) | IBM Granite 4.0 (350M) running on s390x: the prompt (fixed text, no digits), one generation step by step (what the model wrote, what is kept, what is dropped), the guards tested with bad outputs, the text cache, quality across many prompts, and why Hindi and Tamil use reviewed templates. |
+
+To run them on the VM, open JupyterLab, go to `shared/ShieldZ/notebooks`, and use Kernel, then Restart Kernel and Run All Cells (each takes seconds to a couple of minutes).
 
 ## Repository map
 
@@ -93,7 +104,7 @@ A notebook that runs the whole story step by step, with its outputs from the Lin
 | `src/shieldz/explainer/` | prompt builder, guards, template texts, Granite wrapper, worker |
 | `src/shieldz/audit/` | hash chain, signed checkpoints, verification |
 | `src/shieldz/leak_audit/` | canaries, scanner, sinks, scorecard |
-| `notebooks/`, `tests/`, `scripts/`, `results/`, `docs/`, `containers/` | the walkthrough notebook, tests, tools, committed evidence, design docs, the image |
+| `notebooks/`, `tests/`, `scripts/`, `results/`, `docs/`, `containers/` | the three notebooks, tests, tools, committed evidence, the architecture document and diagram, the image |
 
 Design and the rules that must hold: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -107,6 +118,7 @@ Design and the rules that must hold: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 
 - **Synthetic data.** The detector is trained on **PaySim**, which has no age or demographic fields. We claim that the **architecture** protects users and keeps data private. We do not claim measured accuracy for elderly users.
 - **A simple model.** On this dataset a small decision tree matches it. A policy rule covers a case the model misses (a large partial transfer to a new payee).
+- **Thresholds were tuned on the test split.** The review and block thresholds behind the model card's confusion matrix were chosen from the test split's scores, so that matrix is slightly optimistic. The headline metrics (PR-AUC, ROC-AUC, recall at 1% false alarms) use no thresholds and are unaffected. The training notebook re-chooses them on the validation split: 1,599 of 1,600 fraud cases are still caught or held, and the legitimate payments flagged are 56 blocks and 23 reviews (the model card shows 79 blocks).
 - **English only for the language model.** The 350M model answers in English whatever it is asked, so Hindi and Tamil use reviewed templates.
 - **Tamper-evident, not tamper-proof.** The audit trail reveals changes; it cannot prevent them. The newest entries since the last checkpoint cannot be proven complete.
 - **The leak audit searches files.** It does not cover memory or the network.
