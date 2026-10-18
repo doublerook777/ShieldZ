@@ -1,12 +1,10 @@
 ▶ Scenario A: 'Digital Arrest' Imposter Scam
-  ⚡ Instant Decision: BLOCK (Risk: HIGH) in 3.856 ms
+  ⚡ Instant Decision: BLOCK (Risk: HIGH) in 3.81 ms
   🔍 Reason Codes:   AMOUNT_HIGH_VS_BALANCE, MULE_ACCOUNT_PATTERN, ACCOUNT_DRAIN
-  ⏳ Polling explanation for decision 00ccc4e1...
-  ✍️  Granite Warning (template): "This payment uses most of the funds in your account. The destination account matches characteristics of an unauthorized relay account. This payment would completely drain your remaining balance. Please pause and verify this transfer by calling your bank on the official number on your card b
 ▶ Scenario B: Routine Monthly Electricity Bill
-  ⚡ Instant Decision: ALLOW (Risk: LOW) in 1.595 ms
+  ⚡ Instant Decision: ALLOW (Risk: LOW) in 1.473 ms
 ▶ Scenario C: Urgent Diagnostic Clinic Payment While Traveling
-  ⚡ Instant Decision: REVIEW (Risk: MEDIUM) in 1.642 ms
-  🔍 Reason Codes:   NEW_RECIPIENT
-  ⏳ Polling explanation for decision 30d67608...
-  ✍️  Granite Warning (template): "The receiving account is new and has not received transfers before. Please pause and verify this transfer by calling your bank on the official number on your card before proceeding."
+  ⚡ Instant Decision: ALLOW (Risk: LOW) in 1.358 ms
+▶ Scenario D: Large Transfer to a Brand-New Account
+  ⚡ Instant Decision: REVIEW (Risk: MEDIUM) in 1.592 ms
+  🔍 Reason Codes:   NEW_RECIPIENT, LARGE_AMOUNT
