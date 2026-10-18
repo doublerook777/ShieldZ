@@ -46,20 +46,26 @@ docker exec shieldz-api python -c "from shieldz.outbox.queue import Outbox; prin
 
 ## 3. Walk through the UI (about 3 minutes)
 
-The top of the page shows the platform and engine it read from `/healthz`.
+The page is one column. The title is **ShieldZ**; the top right shows the platform and engine read from `/healthz` (for example `s390x / xgboost`).
 
-| Click | What you should see | What to say |
+1. Pick a payment with the three buttons (**Scam transfer**, **Electricity bill**, **Clinic payment**). The line under them tells the story. **Payment details** opens the editable form.
+2. Press **Screen payment**. The decision appears in the large panel and is the centre of the page:
+
+| Payment | Panel | What to say |
 |---|---|---|
-| **Scenario A, Digital Arrest** card, then **Authorize & Screen Transaction** | **BLOCK**, a few ms, reasons AMOUNT_HIGH_VS_BALANCE, MULE_ACCOUNT_PATTERN, ACCOUNT_DRAIN. The explanation panel shows the template text at once, then switches to **IBM Granite** (instantly if cached). A family-alert **preview** appears (the message text is written per scenario; nothing is sent). | The decision never waits for the language model. The text on screen first is the reviewed template; Granite's wording replaces it when ready. |
-| **Scenario B, Electricity Bill** | **ALLOW**, about 1-2 ms, no reasons, no explanation. | Normal payments cost the customer nothing. The utility has a long history in the seeded data. |
-| **Scenario C, Clinic Payment** | **REVIEW**, reason NEW_RECIPIENT. A two-step confirmation, not a block. | A first payment of ₹5,000+ to an unknown payee is held by a **policy rule next to the model** (ADR D17). The model alone scores B and C identically. |
-| Tab **Canary Leak Audit Scorecard**, **Refresh** | PASS, 0 exact / variant / partial leaks, 11 sinks, positive control 10/10, negative control 0 hits. | We planted fake customers with distinctive names, numbers and memos, sent them through, then searched every place data lands. They are nowhere. |
-| Tab **Tamper-Evident Audit Chain**, verify button | "Chain valid", tens of thousands of entries, signatures valid. | Every decision is in a hash chain with signed checkpoints. |
-| Tab **LinuxONE Topology** | The two containers and the core split. | API pinned to core 0, explainer to cores 1-2 (Granite runs on the CPU through llama.cpp; we do not claim accelerator use). |
+| Scam transfer | Filled off-white panel, **Blocked**, a few ms, reasons AMOUNT_HIGH_VS_BALANCE, MULE_ACCOUNT_PATTERN, ACCOUNT_DRAIN. | The decision never waits for the language model. |
+| Electricity bill | Plain panel, **Allowed**, about 1-2 ms, no reasons. | Normal payments cost the customer nothing. |
+| Clinic payment | Outlined panel, **Held for review**, reason NEW_RECIPIENT. | A policy rule next to the model holds a first payment of Rs 5,000 or more to an unknown payee (ADR D17). |
 
-Each scenario click uses a **fresh payee** automatically. (Once you pay someone, they count as known and the same story would score lower; that is correct behaviour, but it would make repeat takes differ.) The electricity board is the one seeded payee that is not renamed.
+   The explanation shows the reviewed template text at once, and the small line under it changes to "Written by the Granite language model" when Granite's wording replaces it (instantly if cached; in template-only mode it stays on the template). A family-guardian message appears as a **preview**; nothing is sent.
+3. **Proof** section, left card **Privacy check**: loads on its own. Expect PASS, 0 leaks, 11 places searched, planted canaries 10 of 10, never-sent decoys 0 of 1,000.
+4. **Proof**, right card **Tamper check**: press **Verify audit trail**. Expect "Chain valid: N entries verified OK".
 
-The first time you press the button the API may take a few extra ms (cold caches). Press once off camera.
+Decisions are shown by treatment, not colour: Blocked is a filled panel, Review has a heavy outline, Allowed is plain.
+
+Each press of **Screen payment** uses a **fresh payee** automatically (once you pay someone they count as known, and the same story would score lower). The electricity board is the one seeded payee that is not renamed.
+
+The first press may take a few extra ms (cold caches). Press once off camera.
 
 ## 4. Proof for the camera (VM)
 
@@ -94,7 +100,7 @@ Say:
 - REVIEW comes from "the model plus a policy rule".
 - Scenario A is an exact full drain: PaySim fraud is almost entirely account drains, and that is what the model learned (PR-AUC 0.994 on a time-based holdout, `results/model_metrics.json`).
 
-Don't claim: accuracy on elderly users (PaySim has no demographics), real-money use, that Granite writes every explanation live, that the family alert is sent (it is a message preview), or that Granite uses the Telum/NNPA accelerator (the CPU does the work; `nnpa` is merely present in `/proc/cpuinfo`).
+Don't claim: accuracy on elderly users (PaySim has no demographics), real-money use, that Granite writes every explanation live, that the family message is sent (it is a preview), that Granite uses the Telum/NNPA accelerator (the CPU does the work; `nnpa` is merely present in `/proc/cpuinfo`), or that the model is the clever part (a depth-3 decision tree matches it: `results/baseline_comparison.md`).
 
 ## 6. Between takes
 
@@ -115,5 +121,5 @@ Don't claim: accuracy on elderly users (PaySim has no demographics), real-money 
 | Scenario C is ALLOW | policy rule off, or that payee was paid before | check `review_new_payee_min` in `artifacts/model/thresholds.json`; reload the scenario card (new payee) |
 | Scenario A is REVIEW or ALLOW | same payee already paid | reload the card |
 | No Granite text after 40 s | explainer backlog or crashed | section 6 |
-| Scorecard tab empty | no `results/leak_scorecard_*.json` mounted | `make z-up` mounts `results/` read-only |
+| Privacy check card empty | no `results/leak_scorecard_*.json` mounted | `make z-up` mounts `results/` read-only |
 | Verify says invalid right after you tampered | you edited the live file | restore it from the backup; use the copy method above |

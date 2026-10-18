@@ -1,571 +1,204 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShieldZ — Real-Time Scam & Fraud Defense on IBM LinuxONE</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShieldZ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Inter:wght@400;500&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b0f19;
-      --card-bg: #111827;
-      --card-border: #1f293d;
-      --card-hover: #1e293b;
-      --ibm-blue: #0f62fe;
-      --ibm-blue-hover: #0353e9;
-      --ibm-blue-light: #4589ff;
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
-      --text-dim: #6b7280;
-      --success: #24a148;
-      --success-bg: rgba(36, 161, 72, 0.15);
-      --warning: #f1c21b;
-      --warning-bg: rgba(241, 194, 27, 0.15);
-      --danger: #da1e28;
-      --danger-bg: rgba(218, 30, 40, 0.15);
-      --radius: 8px;
+      --canvas: #2b2622;
+      --canvas-soft: #383330;
+      --hairline: #3f3a36;
+      --ink: #f7f5f0;
+      --on-ink: #2b2622;
+      --body-strong: #dad2c1;
+      --body: #c9c0ad;
+      --mute: #aea69c;
+      --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
     }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--canvas); color: var(--ink); font: 400 16px/24px var(--sans); }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .mono { font-family: var(--mono); }
+    .mute { color: var(--mute); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 60px; }
+    /* nav */
+    .nav { border-bottom: 1px solid var(--hairline); }
+    .nav .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; padding-bottom: 10px; }
+    .wordmark { font: 500 14px/20px var(--sans); }
+    #health { font: 400 13px/18px var(--mono); color: var(--mute); }
 
-    header {
-      background: #000000;
-      border-bottom: 1px solid var(--card-border);
-      padding: 16px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
+    /* hero: the title, one line, and the scenario picker */
+    .hero { padding: 64px 0 32px; }
+    h1 { font: 400 64px/70px var(--sans); letter-spacing: -1.6px; }
+    .lede { margin-top: 8px; font: italic 400 32px/40px var(--serif); color: var(--body-strong); }
+    .picker { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .choice { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); border-radius: 3px;
+              padding: 8px 16px; font: 500 14px/20px var(--sans); cursor: pointer; }
+    .choice:hover { background: var(--canvas-soft); }
+    .choice[aria-pressed="true"] { background: var(--canvas-soft); border-color: var(--ink); }
+    .btn { background: var(--ink); color: var(--on-ink); border: 0; border-radius: 3px; padding: 8px 16px;
+           font: 500 14px/20px var(--sans); cursor: pointer; }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .btn.ghost { background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); }
+    .summary { margin-top: 16px; color: var(--body); }
+    .summary strong { color: var(--ink); font-weight: 500; }
 
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-logo {
-      background: var(--ibm-blue);
-      color: #fff;
-      font-weight: 800;
-      font-size: 1.3rem;
-      padding: 6px 12px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
-    }
-    .brand-title h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
-    .brand-title p { font-size: 0.8rem; color: var(--text-muted); }
+    /* the stage: the real-time decision */
+    .stage { border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas-soft); padding: 24px; min-height: 280px; }
+    .stage.block { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+    .stage.block .mute, .stage.block .label, .stage.block .src, .stage.block .reason span { color: #5a524b; }
+    .stage.block .rule, .stage.block .reason { border-color: #c9c0ad; }
+    .stage.review { border: 2px solid var(--ink); }
+    .idle { color: var(--body); }
+    .head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .verdict { font: 400 64px/70px var(--sans); letter-spacing: -1.6px; }
+    .timing { font: 400 14px/20px var(--mono); }
+    .timing b { font: 400 32px/40px var(--mono); letter-spacing: -0.8px; }
+    .meaning { margin-top: 4px; font-size: 18px; line-height: 28px; }
+    .cols { margin-top: 24px; display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+    .label { font: 400 12px/16px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--mute); margin-bottom: 8px; }
+    .reason { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline);
+              font: 400 13px/18px var(--mono); }
+    .reason span { color: var(--mute); }
+    .explain { font-size: 18px; line-height: 28px; }
+    .src { margin-top: 8px; font: 400 12px/16px var(--mono); color: var(--mute); }
+    .family { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline); font-size: 14px; line-height: 20px; }
+    .stage.block .family { border-color: #c9c0ad; }
 
-    .system-status { display: flex; align-items: center; gap: 16px; font-size: 0.85rem; }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      padding: 4px 10px;
-      border-radius: 999px;
-      color: #94a3b8;
-    }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+    /* details form */
+    details { margin-top: 16px; }
+    summary { cursor: pointer; color: var(--body); font-size: 14px; }
+    .note { margin: 12px 0; font-size: 14px; color: var(--mute); }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px; }
+    label { display: block; font-size: 12px; line-height: 16px; color: var(--mute); margin-bottom: 4px; }
+    input, select { width: 100%; background: var(--canvas-soft); color: var(--ink); border: 1px solid var(--hairline);
+                    border-radius: 3px; padding: 8px 10px; font: 400 14px/20px var(--sans); }
+    .full { grid-column: 1 / -1; }
 
-    main { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    /* proof */
+    .proof { padding: 64px 0 48px; }
+    h2 { font: 500 32px/40px var(--sans); letter-spacing: -0.8px; }
+    .proof .sub { margin-top: 4px; color: var(--body); }
+    .cards { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: var(--canvas-soft); border: 1px solid var(--hairline); border-radius: 4px; padding: 24px; }
+    .card h3 { font: 500 24px/32px var(--sans); letter-spacing: -0.4px; }
+    .card p { margin-top: 8px; color: var(--body); font-size: 14px; line-height: 20px; }
+    dl { margin-top: 16px; font: 400 13px/18px var(--mono); }
+    dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
+    dt { color: var(--mute); }
+    .result { margin-top: 16px; font: 400 13px/18px var(--mono); color: var(--body-strong); word-break: break-word; }
+    .card .btn { margin-top: 16px; }
 
-    /* Scenario Bar */
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .scenarios-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .scenario-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .scenario-card:hover { border-color: var(--ibm-blue); background: var(--card-hover); transform: translateY(-2px); }
-    .scenario-card.active { border-color: var(--ibm-blue-light); box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.4); }
-    .scenario-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-    .scenario-badge { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
-    .badge-block { background: var(--danger-bg); color: #ff8389; border: 1px solid #da1e28; }
-    .badge-allow { background: var(--success-bg); color: #6fdc8c; border: 1px solid #24a148; }
-    .badge-review { background: var(--warning-bg); color: #fddc69; border: 1px solid #f1c21b; }
-    .scenario-title { font-weight: 600; font-size: 0.95rem; color: #fff; margin-bottom: 4px; }
-    .scenario-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px; flex-grow: 1; }
-    .scenario-meta { font-size: 0.75rem; color: var(--text-dim); display: flex; justify-content: space-between; border-top: 1px solid var(--card-border); padding-top: 8px; }
+    footer { border-top: 1px solid var(--hairline); padding: 32px 0 48px; color: var(--body); font-size: 14px; line-height: 20px; }
 
-    /* Work Area Grid */
-    .work-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    @media (max-width: 900px) { .work-grid { grid-template-columns: 1fr; } }
-
-    /* Payment Form */
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      padding: 20px;
+    @media (max-width: 767px) {
+      h1, .verdict { font-size: 48px; line-height: 52px; letter-spacing: -1.2px; }
+      .hero { padding-top: 32px; }
+      .cols, .cards, .grid { grid-template-columns: 1fr; }
     }
-    .privacy-notice {
-      background: rgba(15, 98, 254, 0.08);
-      border-left: 3px solid var(--ibm-blue);
-      padding: 10px 12px;
-      font-size: 0.78rem;
-      color: #cbd5e1;
-      margin-bottom: 16px;
-      border-radius: 0 var(--radius) var(--radius) 0;
-    }
-    .privacy-notice strong { color: var(--ibm-blue-light); }
-
-    .form-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 0.78rem; font-weight: 500; color: #94a3b8; margin-bottom: 4px; }
-    .shred-label { color: #f87171; font-weight: 600; }
-    .token-label { color: #38bdf8; font-weight: 600; }
-    input, select {
-      width: 100%;
-      background: #0b0f19;
-      border: 1px solid #334155;
-      border-radius: 4px;
-      padding: 8px 10px;
-      color: #fff;
-      font-size: 0.85rem;
-      outline: none;
-      transition: border 0.2s;
-    }
-    input:focus, select:focus { border-color: var(--ibm-blue); }
-    .btn-submit {
-      width: 100%;
-      background: var(--ibm-blue);
-      color: #fff;
-      border: none;
-      padding: 12px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 16px;
-      transition: background 0.2s;
-    }
-    .btn-submit:hover { background: var(--ibm-blue-hover); }
-    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* Results Dashboard */
-    .dashboard-panel { display: flex; flex-direction: column; gap: 16px; }
-    .decision-hero {
-      background: #0b0f19;
-      border: 2px dashed #334155;
-      border-radius: var(--radius);
-      padding: 24px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 160px;
-      position: relative;
-    }
-    .decision-badge-large {
-      font-size: 1.8rem;
-      font-weight: 800;
-      padding: 8px 24px;
-      border-radius: 6px;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-    .decision-subtext { font-size: 0.85rem; color: var(--text-muted); }
-    .latency-pill {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      font-size: 0.75rem;
-      background: #1e293b;
-      border: 1px solid #334155;
-      padding: 3px 8px;
-      border-radius: 999px;
-      color: #38bdf8;
-      font-weight: 600;
-      font-family: monospace;
-    }
-
-    /* Reason codes */
-    .reasons-box {
-      background: #0b0f19;
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      padding: 14px;
-    }
-    .reasons-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
-    .reason-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #111827;
-      border: 1px solid #1f293d;
-      padding: 8px 12px;
-      border-radius: 4px;
-      margin-bottom: 6px;
-      font-size: 0.82rem;
-    }
-    .reason-code { font-family: monospace; font-weight: 600; color: #f3f4f6; }
-    .level-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
-
-    /* Explainer Box */
-    .explainer-box {
-      background: #0b0f19;
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      padding: 16px;
-      position: relative;
-    }
-    .explainer-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .explainer-source-badge {
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: #2e1065;
-      color: #d8b4fe;
-      border: 1px solid #6b21a8;
-      font-weight: 600;
-    }
-    .explainer-body {
-      font-size: 0.9rem;
-      line-height: 1.6;
-      color: #e2e8f0;
-      font-style: italic;
-      background: #111827;
-      padding: 12px;
-      border-radius: 4px;
-      border-left: 3px solid #a855f7;
-    }
-
-    /* Family Alert */
-    .family-alert-box {
-      background: #171111;
-      border: 1px solid #451a1a;
-      border-radius: var(--radius);
-      padding: 14px;
-    }
-    .family-alert-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #fca5a5;
-      margin-bottom: 6px;
-    }
-    .family-alert-body { font-size: 0.82rem; color: #cbd5e1; font-family: monospace; }
-
-    /* Security Tabs */
-    .tabs-section { margin-top: 36px; }
-    .tabs-header { display: flex; gap: 8px; border-bottom: 1px solid var(--card-border); margin-bottom: 16px; }
-    .tab-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      font-weight: 600;
-      padding: 10px 16px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-    }
-    .tab-btn.active { color: var(--ibm-blue-light); border-bottom-color: var(--ibm-blue); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* Scorecard Table */
-    .table-responsive { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left; }
-    th { background: #0b0f19; color: #94a3b8; padding: 10px; border-bottom: 1px solid var(--card-border); font-weight: 600; }
-    td { padding: 10px; border-bottom: 1px solid var(--card-border); color: #cbd5e1; }
-    tr:last-child td { border-bottom: none; }
-
-    .pulse { animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
   </style>
 </head>
 <body>
-
-  <header>
-    <div class="brand">
-      <div class="brand-logo">IBM Z</div>
-      <div class="brand-title">
-        <h1>ShieldZ</h1>
-        <p>AI Secured: Innovation Without Exposure · Datathon 2026</p>
-      </div>
-    </div>
-    <div class="system-status">
-      <div class="status-badge">
-        <span class="status-dot"></span>
-        <span id="platform-text">LinuxONE s390x</span>
-      </div>
-      <div class="status-badge">
-        <span>Engine: <strong id="engine-text" style="color:#fff;">XGBoost</strong></span>
-      </div>
-      <div class="status-badge">
-        <span>Zero-Exposure: <strong style="color:var(--success);">Verified (0 Leaks)</strong></span>
-      </div>
+  <header class="nav">
+    <div class="wrap">
+      <span class="wordmark">ShieldZ</span>
+      <span id="health">connecting</span>
     </div>
   </header>
 
-  <main>
-    <!-- Scenario Switcher -->
-    <div class="section-title">
-      <span>1. Select Demo Scenario (Click to Load)</span>
-      <span style="font-size: 0.78rem; font-weight: normal; color: var(--text-dim);">Pre-fills real-world Indian banking scenarios</span>
-    </div>
-    <div class="scenarios-grid">
-      <div class="scenario-card active" onclick="loadScenario('digital_arrest')" id="card-digital_arrest">
-        <div class="scenario-header">
-          <span class="scenario-title">A. "Digital Arrest" Coercion</span>
-          <span class="scenario-badge badge-block">BLOCK (p99 &lt; 50ms)</span>
-        </div>
-        <div class="scenario-desc">
-          Imposter Skype call claiming illegal parcel. Elderly victim terrified into transferring her entire balance, ₹4,85,000, to a new unseeded escrow at 2:45 AM.
-        </div>
-        <div class="scenario-meta">
-          <span>Amount: ₹4,85,000</span>
-          <span>Target: Unknown Escrow</span>
-        </div>
+  <main class="wrap">
+    <section class="hero">
+      <h1>ShieldZ</h1>
+      <p class="lede">Real-time payment protection.</p>
+
+      <div class="picker" role="group" aria-label="Choose a payment">
+        <button class="choice" type="button" data-key="digital_arrest" aria-pressed="true">Scam transfer</button>
+        <button class="choice" type="button" data-key="utility_bill" aria-pressed="false">Electricity bill</button>
+        <button class="choice" type="button" data-key="borderline_clinic" aria-pressed="false">Clinic payment</button>
+        <button class="btn" type="button" id="go">Screen payment</button>
       </div>
+      <p class="summary" id="summary"></p>
 
-      <div class="scenario-card" onclick="loadScenario('utility_bill')" id="card-utility_bill">
-        <div class="scenario-header">
-          <span class="scenario-title">B. Routine Utility Bill</span>
-          <span class="scenario-badge badge-allow">ALLOW (Instant)</span>
-        </div>
-        <div class="scenario-desc">
-          Normal daytime payment of ₹1,840.50 for electricity to verified merchant DEMO-ELECTRICITY-BOARD with 5,200 prior cluster transactions.
-        </div>
-        <div class="scenario-meta">
-          <span>Amount: ₹1,840.50</span>
-          <span>Target: Verified Utility</span>
-        </div>
-      </div>
-
-      <div class="scenario-card" onclick="loadScenario('borderline_clinic')" id="card-borderline_clinic">
-        <div class="scenario-header">
-          <span class="scenario-title">C. Borderline Travel Clinic</span>
-          <span class="scenario-badge badge-review">REVIEW (Step-Up)</span>
-        </div>
-        <div class="scenario-desc">
-          Urgent ₹8,500 clinic diagnostics payment to a new clinic while visiting relatives. Leaves 98% balance intact; holds for customer confirmation.
-        </div>
-        <div class="scenario-meta">
-          <span>Amount: ₹8,500</span>
-          <span>Target: New Medical UPI</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Interactive Execution Grid -->
-    <div class="work-grid">
-      <!-- Left: Payment Submission Form -->
-      <div class="card">
-        <div class="section-title">
-          <span>2. Payment Request Authorization</span>
-        </div>
-        <div class="privacy-notice">
-          <strong>🔒 Invariant I1 (Privacy Barrier):</strong> Fields marked <span style="color:#f87171;">[SHRED]</span> are dropped immediately at <code>privacy.strip()</code>. Account numbers marked <span style="color:#38bdf8;">[TOKENIZE]</span> become HMACs. <em>The AI and stored logs never see them.</em>
-        </div>
-
-        <form id="paymentForm" onsubmit="submitPayment(event)">
-          <div class="form-group-row">
-            <div class="form-group">
-              <label><span class="shred-label">[SHRED]</span> Payer Full Name</label>
-              <input type="text" id="payer_name" required>
-            </div>
-            <div class="form-group">
-              <label><span class="shred-label">[SHRED]</span> Payer Mobile Number</label>
-              <input type="text" id="payer_phone" required>
-            </div>
-          </div>
-
-          <div class="form-group-row">
-            <div class="form-group">
-              <label><span class="token-label">[TOKENIZE]</span> Payer Account / Card</label>
-              <input type="text" id="payer_account" required>
-            </div>
-            <div class="form-group">
-              <label>Payer Balance Before (₹)</label>
-              <input type="number" step="0.01" id="payer_balance_before" required>
-            </div>
-          </div>
-
-          <div class="form-group-row">
-            <div class="form-group">
-              <label><span class="shred-label">[SHRED]</span> Payee Full Name</label>
-              <input type="text" id="payee_name" required>
-            </div>
-            <div class="form-group">
-              <label><span class="token-label">[TOKENIZE]</span> Payee Account / UPI ID</label>
-              <input type="text" id="payee_account" required>
-            </div>
-          </div>
-
-          <div class="form-group-row">
-            <div class="form-group">
-              <label>Transaction Amount (₹)</label>
-              <input type="number" step="0.01" id="amount" required>
-            </div>
-            <div class="form-group">
-              <label>Transaction Type</label>
-              <select id="tx_type">
-                <option value="TRANSFER">TRANSFER (High-Risk)</option>
-                <option value="PAYMENT">PAYMENT (Standard)</option>
-                <option value="CASH_OUT">CASH_OUT</option>
-                <option value="DEBIT">DEBIT</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label><span class="shred-label">[SHRED]</span> Free-Text Note / Memo</label>
-            <input type="text" id="memo">
-          </div>
-
-          <div class="form-group-row">
-            <div class="form-group">
-              <label>Nominated Family Guardian Contact</label>
-              <input type="text" id="family_contact">
-            </div>
-            <div class="form-group">
-              <label>Explanation Language</label>
-              <select id="language">
-                <option value="EN">English (IBM Granite)</option>
-                <option value="HI">Hindi (हिंदी - Template)</option>
-                <option value="TA">Tamil (தமிழ் - Template)</option>
-              </select>
-            </div>
-          </div>
-
-          <button type="submit" id="btnSubmit" class="btn-submit">
-            <span>🛡️ Authorize &amp; Screen Transaction</span>
-          </button>
+      <details>
+        <summary>Payment details</summary>
+        <p class="note">Names, phone numbers and memos are removed before scoring. Account numbers are replaced by a keyed hash.</p>
+        <form id="form" class="grid" autocomplete="off" onsubmit="return false">
+          <div><label for="payer_name">Payer name</label><input id="payer_name"></div>
+          <div><label for="payer_phone">Payer phone</label><input id="payer_phone"></div>
+          <div><label for="payer_account">Payer account</label><input id="payer_account"></div>
+          <div><label for="payer_balance_before">Payer balance before</label><input id="payer_balance_before" type="number" step="any"></div>
+          <div><label for="payee_name">Payee name</label><input id="payee_name"></div>
+          <div><label for="payee_account">Payee account or UPI id</label><input id="payee_account"></div>
+          <div><label for="amount">Amount</label><input id="amount" type="number" step="any"></div>
+          <div><label for="tx_type">Type</label>
+            <select id="tx_type">
+              <option>TRANSFER</option><option>PAYMENT</option><option>CASH_OUT</option><option>CASH_IN</option><option>DEBIT</option>
+            </select></div>
+          <div class="full"><label for="memo">Memo</label><input id="memo"></div>
+          <div><label for="family_contact">Family contact</label><input id="family_contact"></div>
+          <div><label for="language">Explanation language</label>
+            <select id="language"><option value="EN">English</option><option value="HI">Hindi</option><option value="TA">Tamil</option></select></div>
         </form>
-      </div>
+      </details>
+    </section>
 
-      <!-- Right: Live Result Dashboard -->
-      <div class="dashboard-panel">
-        <div class="card" style="flex-grow: 1;">
-          <div class="section-title">
-            <span>3. Real-Time Decision &amp; Protection</span>
-            <span id="decisionTimestamp" style="font-size:0.75rem; color:var(--text-dim); font-family:monospace;">Waiting for trigger...</span>
+    <section class="stage" id="stage" aria-live="polite">
+      <p class="idle" id="idle">Choose a payment above and press Screen payment. The decision appears here.</p>
+      <div id="out" hidden>
+        <div class="head">
+          <div>
+            <div class="verdict" id="verdict"></div>
+            <div class="meaning" id="meaning"></div>
           </div>
-
-          <!-- Hero Decision Badge -->
-          <div class="decision-hero" id="decisionHero">
-            <span class="latency-pill" id="latencyBadge">&lt; 50 ms SLA</span>
-            <div class="decision-badge-large" id="decisionKind" style="color: #64748b; background: rgba(100, 116, 139, 0.1);">READY</div>
-            <div class="decision-subtext" id="decisionDetail">Select a scenario and authorize the payment.</div>
+          <div class="timing"><b id="ms"></b> ms<div class="mute" id="decision-code"></div></div>
+        </div>
+        <div class="cols">
+          <div>
+            <div class="label">Reasons</div>
+            <div id="reasons"></div>
           </div>
-
-          <!-- SHAP Reason Codes -->
-          <div class="reasons-box" style="margin-top: 14px;">
-            <div class="reasons-title">Explainability TreeSHAP Reason Codes</div>
-            <div id="reasonsContainer">
-              <div style="font-size: 0.8rem; color: var(--text-dim); font-style: italic;">No active risk factors identified.</div>
-            </div>
-          </div>
-
-          <!-- Asynchronous Granite Warning -->
-          <div class="explainer-box" style="margin-top: 14px;" id="explainerBox">
-            <div class="explainer-header">
-              <span style="font-size: 0.8rem; font-weight: 600; color: #d8b4fe;">IBM Granite AI Advisory for Customer</span>
-              <span class="explainer-source-badge" id="explainerSourceBadge">Granite on LinuxONE</span>
-            </div>
-            <div class="explainer-body" id="explainerText">
-              "Payment has not been analyzed yet."
-            </div>
-          </div>
-
-          <!-- Family SMS Guardian Alert -->
-          <div class="family-alert-box" style="margin-top: 14px;" id="familyAlertBox">
-            <div class="family-alert-header">
-              <span>📱 Family Guardian Alert (preview of the message; nothing is sent)</span>
-            </div>
-            <div class="family-alert-body" id="familyAlertText">
-              [No alert triggered]
-            </div>
+          <div>
+            <div class="label">Explanation for the customer</div>
+            <div class="explain" id="explain"></div>
+            <div class="src" id="src"></div>
+            <div class="family" id="family" hidden></div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Bottom Security & Integrity Proofs -->
-    <div class="tabs-section">
-      <div class="tabs-header">
-        <button class="tab-btn active" onclick="switchTab('tab-scorecard')">Canary Leak Audit Scorecard (Invariant I6)</button>
-        <button class="tab-btn" onclick="switchTab('tab-audit')">Tamper-Evident Audit Chain (Invariant I7)</button>
-        <button class="tab-btn" onclick="switchTab('tab-arch')">LinuxONE Topology</button>
-      </div>
-
-      <!-- Tab: Scorecard -->
-      <div class="tab-content active" id="tab-scorecard">
+    <section class="proof">
+      <h2>Proof</h2>
+      <p class="sub">Two checks that run against the real system.</p>
+      <div class="cards">
         <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div>
-              <h3 style="font-size:0.95rem; font-weight:700; color:#fff;">Canary Leak Audit Measured Scorecard</h3>
-              <p style="font-size:0.78rem; color:var(--text-muted);">Synthetic Indian canary identities replayed across all platform sinks</p>
-            </div>
-            <button class="status-badge" style="cursor:pointer; background:var(--ibm-blue); color:#fff; border:none;" onclick="loadLeakScorecard()">↻ Refresh</button>
-          </div>
-          <div id="scorecardDynamic" style="font-size:0.82rem; color:var(--text-muted);">
-          </div>
+          <h3>Privacy check</h3>
+          <p>Fake customers with unique names and numbers are sent through the real system. Every file it writes is then searched for them.</p>
+          <dl id="scorecard"><div><dt>Loading</dt><dd></dd></div></dl>
         </div>
-      </div>
-
-      <!-- Tab: Audit Chain -->
-      <div class="tab-content" id="tab-audit">
         <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div>
-              <h3 style="font-size:0.95rem; font-weight:700; color:#fff;">Ed25519-Signed Hash Chain Integrity</h3>
-              <p style="font-size:0.78rem; color:var(--text-muted);">Append-only decision records with SHA-256 canonical chaining</p>
-            </div>
-            <button class="status-badge" style="cursor:pointer; background:var(--ibm-blue); color:#fff; border:none;" onclick="verifyAuditChain()">
-              Run Verification CLI
-            </button>
-          </div>
-          <div id="auditVerifyOutput" style="background:#0b0f19; padding:12px; border-radius:4px; font-family:monospace; font-size:0.8rem; color:#94a3b8; line-height:1.6;">
-            Click "Run Verification" to verify the audit chain via the API.
-          </div>
+          <h3>Tamper check</h3>
+          <p>Every decision is added to a signed hash chain. Changing or deleting any entry breaks it.</p>
+          <button class="btn ghost" type="button" id="verify">Verify audit trail</button>
+          <div class="result" id="verify-result"></div>
         </div>
       </div>
-
-      <!-- Tab: Architecture -->
-      <div class="tab-content" id="tab-arch">
-        <div class="card">
-          <h3 style="font-size:0.95rem; font-weight:700; color:#fff; margin-bottom:8px;">IBM LinuxONE Hardware Isolation</h3>
-          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
-            The synchronous decision path (FastAPI + XGBoost) and asynchronous explainer (IBM Granite + llama.cpp) run in dedicated Docker containers pinned to separate CPU cores via <code>--cpuset-cpus</code>.
-          </p>
-          <div style="background:#0b0f19; padding:12px; border-radius:4px; font-family:monospace; font-size:0.8rem; color:#38bdf8; line-height:1.6;">
-            • Core 0: shieldz-api (decision p99 6.9 ms idle, 11.5 ms while Granite generates; limit 50 ms)<br>
-            • Cores 1-2: shieldz-explainer (IBM Granite 350M through llama.cpp, on the CPU)<br>
-            • IPC: Shared local volume (artifacts/runtime/outbox.sqlite in WAL mode)
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   </main>
 
+  <footer>
+    <div class="wrap">Personal data is removed before the decision. The explanation is written after it and never delays it.</div>
+  </footer>
+
   <script>
+    // Keep these blocks in the same shape: tests/unit/test_demo_endpoints.py compares them with scripts/demo_scenarios.py
     const SCENARIO_DATA = {
       digital_arrest: {
         payer_name: "Savitri Devi Kulkarni",
@@ -579,8 +212,8 @@
         memo: "URGENT SUPREME COURT VERIFICATION ESCROW DEPOSIT",
         family_contact: "+91 98201 99882 (Son: Anand Kulkarni)",
         language: "EN",
-        alert_msg: "🛡️ [ShieldZ Guardian Alert] A high-risk payment of ₹4,85,000 from Savitri Devi Kulkarni was safely paused. Triggers: Account drain to an unverified recipient at 2:45 AM. Please call your mother immediately.",
-        story: "Imposter Skype call from fake CBI officer threatening 'Digital Arrest'. Victim terrified into emptying her account (₹4,85,000, her entire balance) into an unverified escrow."
+        alert_msg: "ShieldZ alert: a payment of Rs 4,85,000 from Savitri Devi Kulkarni was paused. Reason: account drain to an unverified recipient at 2:45 AM. Please call her now.",
+        story: "A fake investigator threatens 'digital arrest' and tells her to move her entire balance, Rs 4,85,000, to an escrow account at 2:45 AM."
       },
       utility_bill: {
         payer_name: "Savitri Devi Kulkarni",
@@ -594,8 +227,8 @@
         memo: "Electricity bill payment consumer no 44019281",
         family_contact: "+91 98201 99882 (Son: Anand Kulkarni)",
         language: "EN",
-        alert_msg: "[No alert needed: Routine utility payment]",
-        story: "Normal daytime payment of ₹1,840.50 for electricity to verified merchant DEMO-ELECTRICITY-BOARD."
+        alert_msg: "",
+        story: "Her monthly electricity bill, Rs 1,840.50, paid at 11 AM to a utility she has paid before."
       },
       borderline_clinic: {
         payer_name: "Savitri Devi Kulkarni",
@@ -609,307 +242,155 @@
         memo: "Diagnostic lab tests and ultrasound fee",
         family_contact: "+91 98201 99882 (Son: Anand Kulkarni)",
         language: "EN",
-        alert_msg: "ℹ️ [ShieldZ Advisory] Savitri Devi initiated a ₹8,500 payment to a new recipient (Apex Care Diagnostics). Status: Held for customer confirmation. No balance drain.",
-        story: "Urgent ₹8,500 clinic diagnostics payment to a new clinic while visiting relatives in Nagpur."
+        alert_msg: "ShieldZ notice: a payment of Rs 8,500 from Savitri Devi Kulkarni to a new recipient is waiting for her confirmation. No account drain.",
+        story: "Rs 8,500 for urgent clinic tests while visiting relatives, paid to a clinic she has never paid before."
       }
     };
 
-    let currentScenarioKey = 'digital_arrest';
+    const SEEDED_PAYEE = "DEMO-ELECTRICITY-BOARD";
+    const FIELDS = ["payer_name", "payer_phone", "payer_account", "payer_balance_before", "payee_name",
+                    "payee_account", "amount", "tx_type", "memo", "family_contact", "language"];
+    const MEANING = {
+      BLOCK: "Payment stopped before any money moved.",
+      REVIEW: "Held until the customer confirms it.",
+      ALLOW: "Payment approved."
+    };
+    const VERDICT = { BLOCK: "Blocked", REVIEW: "Held for review", ALLOW: "Allowed" };
+    const $ = (id) => document.getElementById(id);
+    let current = "digital_arrest";
+    let poll = null;
 
-    function loadScenario(key) {
-      currentScenarioKey = key;
-      document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
-      const activeCard = document.getElementById(`card-${key}`);
-      if (activeCard) activeCard.classList.add('active');
-
-      const data = SCENARIO_DATA[key];
-      if (!data) return;
-
-      document.getElementById('payer_name').value = data.payer_name;
-      document.getElementById('payer_phone').value = data.payer_phone;
-      document.getElementById('payer_account').value = data.payer_account;
-      document.getElementById('payer_balance_before').value = data.payer_balance_before;
-      document.getElementById('payee_name').value = data.payee_name;
-      // Once paid, a payee counts as "known" and the same story would score lower the second time.
-      // Give every click a fresh payee, except the seeded utility whose long history is the point.
-      const seeded = data.payee_account === 'DEMO-ELECTRICITY-BOARD';
-      document.getElementById('payee_account').value =
-        seeded ? data.payee_account : `${data.payee_account}-${Math.random().toString(16).slice(2, 6)}`;
-      document.getElementById('amount').value = data.amount;
-      document.getElementById('tx_type').value = data.tx_type;
-      document.getElementById('memo').value = data.memo;
-      document.getElementById('family_contact').value = data.family_contact;
-      document.getElementById('language').value = data.language;
+    function pick(key) {
+      current = key;
+      document.querySelectorAll(".choice").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.key === key)));
+      const d = SCENARIO_DATA[key];
+      FIELDS.forEach((f) => { $(f).value = d[f]; });
+      const rupees = Number(d.amount).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+      $("summary").innerHTML = "<strong>Rs " + rupees + "</strong> to " + d.payee_name + ". " + d.story;
     }
 
-    async function submitPayment(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnSubmit');
-      btn.disabled = true;
-      btn.innerHTML = '<span>⚡ Processing on LinuxONE...</span>';
-
-      const hero = document.getElementById('decisionHero');
-      const kindElem = document.getElementById('decisionKind');
-      const detailElem = document.getElementById('decisionDetail');
-      const latencyBadge = document.getElementById('latencyBadge');
-      const reasonsContainer = document.getElementById('reasonsContainer');
-      const explainerText = document.getElementById('explainerText');
-      const explainerSourceBadge = document.getElementById('explainerSourceBadge');
-      const familyAlertText = document.getElementById('familyAlertText');
-
-      hero.classList.add('pulse');
-      kindElem.innerText = 'SCREENING';
-      kindElem.style.color = '#38bdf8';
-      kindElem.style.background = 'rgba(56, 189, 248, 0.1)';
-      detailElem.innerText = 'Applying XGBoost inference & TreeSHAP reasons...';
-
-      const payload = {
-        payer_name: document.getElementById('payer_name').value,
-        payer_phone: document.getElementById('payer_phone').value,
-        payer_account: document.getElementById('payer_account').value,
-        payer_balance_before: parseFloat(document.getElementById('payer_balance_before').value),
-        payee_name: document.getElementById('payee_name').value,
-        payee_account: document.getElementById('payee_account').value,
-        amount: parseFloat(document.getElementById('amount').value),
-        tx_type: document.getElementById('tx_type').value,
-        memo: document.getElementById('memo').value,
-        family_contact: document.getElementById('family_contact').value,
-        language: document.getElementById('language').value,
-        payee_balance_before: 0.0,
-        payee_is_merchant: document.getElementById('tx_type').value === 'PAYMENT',
+    async function screen() {
+      const button = $("go");
+      button.disabled = true;
+      clearTimeout(poll);
+      const payment = {
+        payer_name: $("payer_name").value, payer_phone: $("payer_phone").value,
+        payer_account: $("payer_account").value, payer_balance_before: parseFloat($("payer_balance_before").value),
+        payee_name: $("payee_name").value, payee_account: $("payee_account").value,
+        amount: parseFloat($("amount").value), tx_type: $("tx_type").value, memo: $("memo").value,
+        family_contact: $("family_contact").value, language: $("language").value,
+        payee_balance_before: 0.0, payee_is_merchant: $("tx_type").value === "PAYMENT",
         timestamp: new Date().toISOString()
       };
-
+      // Once paid, a payee counts as known. Use a fresh payee each press, except the seeded utility.
+      const base = SCENARIO_DATA[current].payee_account;
+      if (payment.payee_account === base && base !== SEEDED_PAYEE) {
+        payment.payee_account = base + "-" + Math.random().toString(16).slice(2, 6);
+      }
       try {
-        const resp = await fetch('/v1/score', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        hero.classList.remove('pulse');
-
-        if (!resp.ok) {
-          kindElem.innerText = 'ERROR';
-          kindElem.style.color = '#ff8389';
-          detailElem.innerText = `HTTP ${resp.status} - Verification failed`;
-          return;
-        }
-
-        const data = await resp.json();
-        renderDecision(data);
-      } catch (err) {
-        showApiUnreachable();
+        const res = await fetch("/v1/score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payment) });
+        if (!res.ok) { unreachable("The service answered with an error (" + res.status + ")."); return; }
+        show(await res.json());
+      } catch (e) {
+        unreachable("The service cannot be reached.");
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<span>🛡️ Authorize &amp; Screen Transaction</span>';
+        button.disabled = false;
       }
     }
 
-    function renderDecision(data) {
-      const hero = document.getElementById('decisionHero');
-      const kindElem = document.getElementById('decisionKind');
-      const detailElem = document.getElementById('decisionDetail');
-      const latencyBadge = document.getElementById('latencyBadge');
-      const reasonsContainer = document.getElementById('reasonsContainer');
-      const explainerText = document.getElementById('explainerText');
-      const explainerSourceBadge = document.getElementById('explainerSourceBadge');
-      const familyAlertText = document.getElementById('familyAlertText');
+    function unreachable(message) {
+      $("stage").className = "stage";
+      $("idle").hidden = false;
+      $("idle").textContent = message;
+      $("out").hidden = true;
+    }
 
-      document.getElementById('decisionTimestamp').innerText = `ID: ${data.decision_id ? data.decision_id.slice(0, 8) : 'sim'} · ${new Date().toLocaleTimeString()}`;
-      latencyBadge.innerText = `${data.server_ms} ms`;
-
-      if (data.decision === 'BLOCK') {
-        kindElem.innerText = '⛔ PAYMENT BLOCKED';
-        kindElem.style.color = '#ff8389';
-        kindElem.style.background = 'var(--danger-bg)';
-        detailElem.innerText = 'High-risk scam pattern detected. Funds protected in customer account.';
-      } else if (data.decision === 'REVIEW') {
-        kindElem.innerText = '⚠️ REVIEW REQUIRED';
-        kindElem.style.color = '#fddc69';
-        kindElem.style.background = 'var(--warning-bg)';
-        detailElem.innerText = 'Cautionary transfer. Held for two-step confirmation.';
+    function show(d) {
+      $("stage").className = "stage " + d.decision.toLowerCase();
+      $("idle").hidden = true;
+      $("out").hidden = false;
+      $("verdict").textContent = VERDICT[d.decision];
+      $("meaning").textContent = MEANING[d.decision];
+      $("ms").textContent = Number(d.server_ms).toFixed(1);
+      $("decision-code").textContent = d.decision + " / model " + d.model_version;
+      $("reasons").innerHTML = d.reason_codes.length
+        ? d.reason_codes.map((r) => '<div class="reason">' + r.code + "<span>" + r.level + "</span></div>").join("")
+        : '<div class="mute">None</div>';
+      const alert = SCENARIO_DATA[current].alert_msg;
+      $("family").hidden = d.decision === "ALLOW" || !alert;
+      $("family").textContent = alert ? "Message to the family guardian (preview, not sent): " + alert : "";
+      if (d.decision === "ALLOW") {
+        $("explain").textContent = "No explanation needed.";
+        $("src").textContent = "";
       } else {
-        kindElem.innerText = '✅ PAYMENT ALLOWED';
-        kindElem.style.color = '#6fdc8c';
-        kindElem.style.background = 'var(--success-bg)';
-        detailElem.innerText = 'Legitimate payment to verified recipient processed instantly.';
-      }
-
-      // Reason codes
-      if (data.reason_codes && data.reason_codes.length > 0) {
-        reasonsContainer.innerHTML = data.reason_codes.map(r => `
-          <div class="reason-item">
-            <span class="reason-code">${r.code}</span>
-            <span class="level-badge ${r.level === 'HIGH' ? 'badge-block' : 'badge-review'}">${r.level}</span>
-          </div>
-        `).join('');
-      } else {
-        reasonsContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-dim); font-style:italic;">No risk factors identified (Clear).</div>';
-      }
-
-      // Explainer: show loading state, then poll GET /v1/explanations/{id} for up to 40 s.
-      // The template explanation arrives first (within seconds). If Granite later produces text
-      // that passes the guard, the source upgrades to "granite" and the text is replaced.
-      if (data.decision !== 'ALLOW') {
-        familyAlertText.innerText = SCENARIO_DATA[currentScenarioKey].alert_msg;
-        explainerText.innerText = '"Explanation loading — please wait..."';
-        explainerSourceBadge.innerText = 'Fetching...';
-        pollExplanation(data.decision_id, Date.now(), 40000);
-      } else {
-        explainerSourceBadge.innerText = 'Deterministic Fast Path';
-        explainerText.innerText = '"Payment verified and approved instantly. No warnings triggered."';
-        familyAlertText.innerText = '[No alert triggered: Normal recurring payment]';
+        $("explain").textContent = "Writing the explanation";
+        $("src").textContent = "";
+        followExplanation(d.decision_id, Date.now());
       }
     }
 
-    function showApiUnreachable() {
-      // The API is not reachable — show an honest error rather than a fake decision.
-      const hero = document.getElementById('decisionHero');
-      const kindElem = document.getElementById('decisionKind');
-      const detailElem = document.getElementById('decisionDetail');
-      const latencyBadge = document.getElementById('latencyBadge');
-      hero.classList.remove('pulse');
-      latencyBadge.innerText = '— ms';
-      kindElem.innerText = '⚠️ API NOT REACHABLE';
-      kindElem.style.color = '#f1c21b';
-      kindElem.style.background = 'var(--warning-bg)';
-      detailElem.innerText = 'Cannot connect to the ShieldZ service. Start the API and reload.';
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
-      if (activeBtn) activeBtn.classList.add('active');
-      const activeContent = document.getElementById(tabId);
-      if (activeContent) activeContent.classList.add('active');
-    }
-
-    async function verifyAuditChain() {
-      const out = document.getElementById('auditVerifyOutput');
-      out.innerHTML = '<span style="color:#f1c21b;">Calling GET /v1/audit/verify...</span>';
+    // The template text is ready at once; a language model may replace it a few seconds later.
+    async function followExplanation(id, started) {
       try {
-        const resp = await fetch('/v1/audit/verify');
-        if (!resp.ok) {
-          out.innerHTML = `<span style="color:#ff8389;">HTTP ${resp.status} — could not reach verify endpoint.</span>`;
-          return;
-        }
-        const v = await resp.json();
-        if (v.ok) {
-          out.innerHTML = `<span style="color:#24a148;">✅ ${v.message}</span>`;
-        } else {
-          out.innerHTML = `<span style="color:#ff8389;">❌ ${v.message}${v.failure_seq !== null ? ' (seq ' + v.failure_seq + ')' : ''}</span>`;
-        }
-      } catch (e) {
-        out.innerHTML = '<span style="color:#ff8389;">⚠️ API not reachable — start the service to verify the chain.</span>';
-      }
-    }
-
-    // Health check on load
-    async function checkHealth() {
-      try {
-        const res = await fetch('/healthz');
+        const res = await fetch("/v1/explanations/" + id);
         if (res.ok) {
-          const h = await res.json();
-          document.getElementById('platform-text').innerText = `${h.platform} (LinuxONE)`;
-          document.getElementById('engine-text').innerText = `${h.engine} (${h.model_version})`;
+          const e = await res.json();
+          $("explain").textContent = e.text;
+          $("src").textContent = e.source === "granite"
+            ? "Written by the Granite language model"
+            : "Reviewed template text (a language model may replace it)";
+          if (e.source === "granite") return;
         }
-      } catch (e) {
-        // standalone / static preview mode
-      }
+        if (Date.now() - started < 40000) {
+          poll = setTimeout(() => followExplanation(id, started), 1500);
+        } else if (res.ok) {
+          $("src").textContent = "Reviewed template text";
+        }
+      } catch (e) { /* the decision is already on screen */ }
     }
 
-    // Poll GET /v1/explanations/{id} for up to `deadline` ms. Each response that returns the
-    // explanation is shown; we keep polling if source is "template" in case Granite finishes later.
-    let _pollTimer = null;
-    async function pollExplanation(decisionId, startMs, timeoutMs) {
-      if (_pollTimer) clearTimeout(_pollTimer);
-      const explainerText = document.getElementById('explainerText');
-      const explainerSourceBadge = document.getElementById('explainerSourceBadge');
+    async function health() {
       try {
-        const resp = await fetch(`/v1/explanations/${decisionId}`);
-        if (resp.status === 404) {
-          // Not ready yet — keep polling if within window
-          if (Date.now() - startMs < timeoutMs) {
-            _pollTimer = setTimeout(() => pollExplanation(decisionId, startMs, timeoutMs), 1500);
-          } else {
-            explainerSourceBadge.innerText = 'Template (timed out)';
-          }
-          return;
-        }
-        if (!resp.ok) {
-          explainerSourceBadge.innerText = 'Error fetching explanation';
-          return;
-        }
-        const ex = await resp.json();
-        explainerText.innerText = `"${ex.text}"`;
-        const sourceLabel = ex.source === 'granite' ? 'IBM Granite (LinuxONE)' : 'Template Explainer';
-        explainerSourceBadge.innerText = sourceLabel;
-        // Keep polling if template: Granite may still be processing
-        if (ex.source !== 'granite' && Date.now() - startMs < timeoutMs) {
-          _pollTimer = setTimeout(() => pollExplanation(decisionId, startMs, timeoutMs), 2000);
-        }
-      } catch (e) {
-        explainerSourceBadge.innerText = 'API not reachable';
-      }
+        const h = await (await fetch("/healthz")).json();
+        $("health").textContent = h.platform + " / " + h.engine;
+      } catch (e) { $("health").textContent = "offline"; }
     }
 
-    // Load the live leak scorecard from GET /v1/leak-scorecard and render it dynamically.
-    async function loadLeakScorecard() {
-      const container = document.getElementById('scorecardDynamic');
-      if (!container) return;
-      container.innerHTML = '<span style="color:#f1c21b; font-size:0.82rem;">Loading scorecard from API...</span>';
+    async function scorecard() {
+      const box = $("scorecard");
       try {
-        const resp = await fetch('/v1/leak-scorecard');
-        if (resp.status === 404) {
-          container.innerHTML = '<span style="color:#94a3b8; font-size:0.82rem;">No scorecard yet — run <code>make leak-audit</code> first.</span>';
-          return;
-        }
-        if (!resp.ok) {
-          container.innerHTML = `<span style="color:#ff8389; font-size:0.82rem;">HTTP ${resp.status}</span>`;
-          return;
-        }
-        const s = await resp.json();
-        const isPass = s.status === 'PASS';
-        const badge = isPass
-          ? '<span style="color:#6fdc8c;">✅ ZERO LEAKS DETECTED</span>'
-          : `<span style="color:#ff8389;">❌ LEAKS DETECTED (exact: ${s.leaks_exact ?? '?'}, variant: ${s.leaks_variant ?? '?'})</span>`;
-        const ctrl = s.positive_control_found !== undefined
-          ? `${s.positive_control_found}/${s.positive_control_planted}` : '?/?';
-        const negCtrl = s.negative_control_hits !== undefined ? s.negative_control_hits : '?';
-        let sinksHtml = '';
-        if (s.bytes_per_sink) {
-          sinksHtml = Object.entries(s.bytes_per_sink).map(([sink, bytes]) =>
-            `<tr><td><code>${sink}</code></td><td style="text-align:right;">${Number(bytes).toLocaleString()} B</td></tr>`
-          ).join('');
-        }
-        container.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-size:0.82rem; color:var(--text-muted);">Env: <strong style="color:#fff;">${s.environment ?? '?'}</strong> · Records: <strong style="color:#fff;">${(s.records_replayed ?? '?').toLocaleString()}</strong> · Positive control: <strong style="color:#38bdf8;">${ctrl}</strong> · Negative control hits: <strong style="color:#38bdf8;">${negCtrl}</strong></span>
-            <span>${badge}</span>
-          </div>
-          <table style="width:100%; font-size:0.78rem; border-collapse:collapse;">
-            <thead><tr><th style="text-align:left; color:var(--text-muted); padding:4px 0; border-bottom:1px solid var(--card-border);">Sink</th><th style="text-align:right; color:var(--text-muted); padding:4px 0; border-bottom:1px solid var(--card-border);">Bytes scanned</th></tr></thead>
-            <tbody>${sinksHtml}</tbody>
-          </table>`;
-      } catch (e) {
-        container.innerHTML = '<span style="color:#ff8389; font-size:0.82rem;">⚠️ API not reachable.</span>';
-      }
+        const res = await fetch("/v1/leak-scorecard");
+        if (!res.ok) { box.innerHTML = "<div><dt>No scorecard yet</dt><dd></dd></div>"; return; }
+        const s = await res.json();
+        const leaks = s.leaks_exact + s.leaks_variant + s.leaks_partial;
+        const rows = [
+          ["Result", s.status],
+          ["Fake customers sent", Number(s.records_replayed).toLocaleString("en-IN")],
+          ["Places searched", s.sinks_scanned + " (" + (s.total_bytes_scanned / 1e6).toFixed(1) + " MB)"],
+          ["Leaks found", leaks],
+          ["Planted canaries found", s.positive_control_found + " of " + s.positive_control_planted],
+          ["Never-sent decoys matched", s.negative_control_hits + " of " + Number(s.negative_control_decoys).toLocaleString("en-IN")],
+          ["Platform", s.platform]
+        ];
+        box.innerHTML = rows.map((r) => "<div><dt>" + r[0] + "</dt><dd>" + r[1] + "</dd></div>").join("");
+      } catch (e) { box.innerHTML = "<div><dt>Service not reachable</dt><dd></dd></div>"; }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadScenario('digital_arrest');
-      checkHealth();
-      loadLeakScorecard();  // populate the scorecard tab on load
-    });
+    async function verify() {
+      const out = $("verify-result");
+      out.textContent = "Verifying";
+      try {
+        const v = await (await fetch("/v1/audit/verify")).json();
+        out.textContent = v.ok ? v.message : "Failed at entry " + v.failure_seq + ": " + v.message;
+      } catch (e) { out.textContent = "Service not reachable"; }
+    }
 
-    // Override switchTab to auto-refresh the scorecard whenever that tab is opened
-    const _switchTabOrig = switchTab;
-    switchTab = function(tabId) {
-      _switchTabOrig(tabId);
-      if (tabId === 'tab-scorecard') loadLeakScorecard();
-    };
+    document.querySelectorAll(".choice").forEach((b) => b.addEventListener("click", () => pick(b.dataset.key)));
+    $("go").addEventListener("click", screen);
+    $("verify").addEventListener("click", verify);
+    pick(current);
+    health();
+    scorecard();
   </script>
 </body>
 </html>
