@@ -48,7 +48,7 @@ docker exec shieldz-api python -c "from shieldz.outbox.queue import Outbox; prin
 
 The page is one column and follows the data. The title is **ShieldZ**. The page itself does not show the platform; show `s390x` from the **Platform** row of the Privacy check card, and from `curl localhost:8000/healthz` or `uname -m` on the VM.
 
-**1. The payment.** Pick one of three payments (**Scam transfer**, **Electricity bill**, **Clinic payment**); the form fills in. Every field carries a small tag saying what happens to it: *removed*, *hashed*, *number only* or *kept as a code*. That is the privacy design in one glance. Press **Screen payment**.
+**1. The payment.** Pick one of four payments (**Scam transfer**, **Electricity bill**, **Clinic payment**, **Large transfer**); the form fills in. Every field carries a small tag saying what happens to it: *removed*, *hashed*, *number only* or *kept as a code*. That is the privacy design in one glance. Press **Screen payment**.
 
 **2. The decision.** The large panel is the real-time result (a few ms):
 
@@ -56,7 +56,8 @@ The page is one column and follows the data. The title is **ShieldZ**. The page 
 |---|---|---|
 | Scam transfer | Filled off-white panel, **Blocked**, reasons AMOUNT_HIGH_VS_BALANCE, MULE_ACCOUNT_PATTERN, ACCOUNT_DRAIN. | The decision never waits for the language model. |
 | Electricity bill | Plain panel, **Allowed**, no reasons. | Normal payments cost the customer nothing. |
-| Clinic payment | Outlined panel, **Held for review**, reason NEW_RECIPIENT. | A policy rule next to the model holds a first payment of Rs 5,000 or more to an unknown payee (ADR D17). |
+| Clinic payment | Plain panel, **Allowed**, no reasons. | Paying a new merchant is normal, so there is no extra step. ShieldZ only adds friction where the pattern is risky. |
+| Large transfer | Outlined panel, **Held for review**, reasons NEW_RECIPIENT and LARGE_AMOUNT. | Half of her savings to a stranger at 11 PM. The model alone would allow it (it learned full drains), so a policy rule next to the model holds a first payment of 40% or more of the balance (ADR D17). |
 
 The explanation shows the reviewed template text at once; the small line under it changes to "Written by the Granite language model" when Granite's wording replaces it (instantly if cached; in template-only mode it stays on the template). The family-guardian message is a **preview**; nothing is sent.
 
@@ -101,7 +102,7 @@ Say:
 - Granite 350M explains **why**, in **English**. The "what to do" sentence ("call your bank on the official number on your card") and the **Hindi and Tamil** texts are human-written templates, because the small model answers in English whatever language it is asked for and, left alone, told customers to call "their number" (the scammer's).
 - Granite texts are generated **once per reason combination and cached**; the first request pays about 11 s (the template shows meanwhile).
 - Fresh Granite generation on the VM: p50 10.4 s; 28 of 30 distinct prompts passed the quality guard (`results/granite_quality.md`).
-- REVIEW comes from "the model plus a policy rule".
+- REVIEW comes from "the model plus a policy rule": the model learned full drains, so a large partial transfer to a new payee would slip through. Ordinary new-payee payments (a clinic bill) are not touched.
 - Scenario A is an exact full drain: PaySim fraud is almost entirely account drains, and that is what the model learned (PR-AUC 0.994 on a time-based holdout, `results/model_metrics.json`).
 
 Don't claim: accuracy on elderly users (PaySim has no demographics), real-money use, that Granite writes every explanation live, that the family message is sent (it is a preview), that Granite uses the Telum/NNPA accelerator (the CPU does the work; `nnpa` is merely present in `/proc/cpuinfo`), or that the model is the clever part (a depth-3 decision tree matches it: `results/baseline_comparison.md`).
@@ -122,7 +123,7 @@ Don't claim: accuracy on elderly users (PaySim has no demographics), real-money 
 |---|---|---|
 | Page does not load | tunnel closed | rerun the `ssh -N -L` command |
 | `/healthz` says `stub-rule` | api started without the model | `make z-up` (defaults to `ENGINE=xgboost`) |
-| Scenario C is ALLOW | policy rule off, or that payee was paid before | check `review_new_payee_min` in `artifacts/model/thresholds.json`; reload the scenario card (new payee) |
+| Large transfer is ALLOW | policy rule off, or that payee was paid before | check `review_new_payee_ratio` in `artifacts/model/thresholds.json` (`null` disables it); select the payment again (each press uses a fresh payee) |
 | Scam transfer is REVIEW or ALLOW | the balance field was edited, or the model was started without its payee-balance input | select the payment again to reset the form (each press uses a fresh payee) |
 | No Granite text after 40 s | explainer backlog or crashed | section 6 |
 | Privacy check card empty | no `results/leak_scorecard_*.json` mounted | `make z-up` mounts `results/` read-only |

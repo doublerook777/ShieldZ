@@ -159,16 +159,14 @@ SCENARIOS: dict[str, DemoScenario] = {
     "borderline_clinic": DemoScenario(
         id="borderline_clinic",
         title="Scenario C: Urgent Diagnostic Clinic Payment While Traveling",
-        category="Borderline / Cautionary Transaction",
+        category="Ordinary Payment to a New Payee",
         victim_profile=("Mrs. Savitri Devi Kulkarni, traveling to Nagpur for a family event."),
         storyline=(
             "While visiting relatives in Nagpur, Mrs. Kulkarni visits an outpatient diagnostics "
-            "lab for urgent blood tests and an ultrasound. She authorizes an electronic payment "
-            "of ₹8,500 to a newly encountered merchant UPI ID "
-            "('UPI-apexcare.reception@icici'). The recipient has zero prior history in the "
-            "banking cluster, but the payment leaves 98.3% of her balance intact and occurs "
-            "during evening clinic hours (7:30 PM). The system flags this for two-step review "
-            "rather than outright blocking."
+            "lab for urgent blood tests and an ultrasound. She pays Rs 8,500 to the clinic's UPI "
+            "id, which she has never paid before. The payment is under 2% of her balance and "
+            "happens at 7:30 PM. Paying a new merchant is normal, so ShieldZ lets it through "
+            "without any extra step."
         ),
         payment={
             "payer_name": "Savitri Devi Kulkarni",
@@ -186,24 +184,48 @@ SCENARIOS: dict[str, DemoScenario] = {
             "timestamp": "2026-10-17T19:30:00+05:30",
             "language": Language.EN.value,
         },
+        expected_decision=DecisionKind.ALLOW,
+        expected_risk=Level.LOW,
+        expected_reasons=[],
+        granite_prompt_preview="[No explanation required: payment allowed]",
+        family_alert_preview="[No alert required: normal payment]",
+    ),
+    "large_new_payee": DemoScenario(
+        id="large_new_payee",
+        title="Scenario D: Large Transfer to a Brand-New Account",
+        category="Large Partial Transfer (policy review)",
+        victim_profile=(
+            "Mrs. Savitri Devi Kulkarni, 72-year-old retired schoolteacher living in Pune."
+        ),
+        storyline=(
+            "A WhatsApp 'financial advisor' promises guaranteed returns. At 11:10 PM Mrs. Kulkarni "
+            "moves Rs 2,45,000, half of her savings, to his account. She has never paid it "
+            "before. The account is not emptied, so the model alone scores it low; ShieldZ's "
+            "policy rule holds a first payment of this size for her confirmation."
+        ),
+        payment={
+            "payer_name": "Savitri Devi Kulkarni",
+            "payer_phone": "+91 98201 44521",
+            "payer_account": "ACC-9041-3321-7788",
+            "payee_name": "Gupta Wealth Advisory",
+            "payee_account": "UPI-guptawealth.advisory@ybl",
+            "memo": "Guaranteed returns scheme, first installment",
+            "family_contact": "+91 98201 99882 (Son: Anand Kulkarni)",
+            "tx_type": TxType.TRANSFER.value,
+            "amount": 245000.00,
+            "payer_balance_before": 490000.00,
+            "payee_balance_before": 0.0,
+            "payee_is_merchant": False,
+            "timestamp": "2026-10-17T23:10:00+05:30",
+            "language": Language.EN.value,
+        },
         expected_decision=DecisionKind.REVIEW,
         expected_risk=Level.MEDIUM,
-        expected_reasons=[
-            ReasonCode.NEW_RECIPIENT,
-        ],
-        granite_prompt_preview=(
-            "Decision: REVIEW. Risk: MEDIUM.\n"
-            "Reasons:\n"
-            "- NEW_RECIPIENT (MEDIUM): The receiving account is new or rarely used.\n"
-            "Language: English.\n"
-            "Write two or three calm, simple sentences warning an elderly customer. "
-            "Suggest they verify the merchant name at the counter before completing the payment. "
-            "Do not mention any numbers, names or links."
-        ),
+        expected_reasons=[ReasonCode.NEW_RECIPIENT, ReasonCode.LARGE_AMOUNT],
+        granite_prompt_preview="[The prompt is shown on the demo page after the explainer runs]",
         family_alert_preview=(
-            "ℹ️ [ShieldZ Advisory] Savitri Devi initiated a ₹8,500 payment to a new recipient "
-            "(Apex Care Diagnostics). Status: Held for customer PIN confirmation. "
-            "No balance drain detected."
+            "ShieldZ notice: a payment of Rs 2,45,000 from Savitri Devi Kulkarni to a new "
+            "recipient is waiting for her confirmation. Please check on her."
         ),
     ),
 }

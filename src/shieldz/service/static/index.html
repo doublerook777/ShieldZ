@@ -131,6 +131,7 @@
         <button class="choice" type="button" data-key="digital_arrest" aria-pressed="true">Scam transfer</button>
         <button class="choice" type="button" data-key="utility_bill" aria-pressed="false">Electricity bill</button>
         <button class="choice" type="button" data-key="borderline_clinic" aria-pressed="false">Clinic payment</button>
+        <button class="choice" type="button" data-key="large_new_payee" aria-pressed="false">Large transfer</button>
         <button class="btn" type="button" id="go">Screen payment</button>
       </div>
       <p class="summary" id="summary"></p>
@@ -271,8 +272,23 @@
         memo: "Diagnostic lab tests and ultrasound fee",
         family_contact: "+91 98201 99882 (Son: Anand Kulkarni)",
         language: "EN",
-        alert_msg: "ShieldZ notice: a payment of Rs 8,500 from Savitri Devi Kulkarni to a new recipient is waiting for her confirmation. No account drain.",
-        story: "Rs 8,500 for urgent clinic tests while visiting relatives, paid to a clinic she has never paid before."
+        alert_msg: "",
+        story: "Rs 8,500 for urgent clinic tests while visiting relatives, paid to a clinic she has never paid before. A new merchant is normal, so nothing extra is asked."
+      },
+      large_new_payee: {
+        payer_name: "Savitri Devi Kulkarni",
+        payer_phone: "+91 98201 44521",
+        payer_account: "ACC-9041-3321-7788",
+        payer_balance_before: 490000.00,
+        payee_name: "Gupta Wealth Advisory",
+        payee_account: "UPI-guptawealth.advisory@ybl",
+        amount: 245000.00,
+        tx_type: "TRANSFER",
+        memo: "Guaranteed returns scheme, first installment",
+        family_contact: "+91 98201 99882 (Son: Anand Kulkarni)",
+        language: "EN",
+        alert_msg: "ShieldZ notice: a payment of Rs 2,45,000 from Savitri Devi Kulkarni to a new recipient is waiting for her confirmation. Please check on her.",
+        story: "A WhatsApp 'advisor' promises guaranteed returns. At 11 PM she sends Rs 2,45,000, half of her savings, to an account she has never paid. The account is not emptied, so the model alone would allow it."
       }
     };
 

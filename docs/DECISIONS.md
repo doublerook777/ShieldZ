@@ -126,10 +126,11 @@ Each critique point, what we changed, or why we didn't:
 4. Rebuild the image on the VM and run `make z-gate` **before** merging.
 5. Add a credit line with a link in `README.md` (event rule).
 
-## D17 — A policy rule next to the model makes REVIEW reachable · *Accepted*
-The trained XGBoost model has two modes on our features: a full-account drain scores about 0.97 and every other payment 0.03-0.05, whatever the amount or payee (PaySim fraud is almost entirely "drain the account"). The electricity bill and the clinic payment in the demo scored exactly alike (0.0265), so no threshold separates them and the REVIEW tier never fires.
-**Decision:** `service/decide.py::apply_policy` raises an ALLOW to REVIEW (reason `NEW_RECIPIENT`) when the payee has no history and the amount is at least `review_new_payee_min` (default 5,000; `null` in `artifacts/model/thresholds.json` disables it). It never lowers a decision.
-**Consequences:** a payee counts as known after one payment, so the demo uses a fresh payee per click. The video describes REVIEW as "model plus a policy rule". Reviewed by Member 2 (C-008).
+## D17 — A policy rule next to the model makes REVIEW reachable · *Accepted (revised 2026-10-18)*
+The trained XGBoost model has two modes on our features: a full-account drain scores about 0.97 and almost everything else 0.03-0.15 (PaySim fraud is almost entirely "drain the account"). Measured on the VM: a transfer of half the balance (Rs 2,45,000 of 4,90,000) to a brand-new payee at 11 PM scores 0.125, so the model alone would ALLOW it. Real scams often take a large share of someone's savings without emptying the account.
+**Decision:** `service/decide.py::apply_policy` raises an ALLOW to REVIEW (reasons `NEW_RECIPIENT` and `LARGE_AMOUNT`) only when **all** hold: the payee has no history, the amount is at least `review_new_payee_ratio` of the payer's balance (default 0.4), and at least `review_new_payee_min_amount` rupees (default 10,000). A `null` ratio in `artifacts/model/thresholds.json` disables it. It never lowers a decision.
+**History:** the first version held *any* first payment of Rs 5,000 or more to a new payee. That added friction to ordinary payments (an Rs 8,500 clinic bill), and it was dropped the same day after review: paying someone new is normal, so the rule now targets only a large share of the balance.
+**Consequences:** a payee counts as known after one payment, so the demo uses a fresh payee per press. The video describes REVIEW as "model plus a policy rule". Demo scenario D is the REVIEW example; scenario C (the clinic payment) is an ordinary ALLOW.
 
 ## D18 — Granite 350M rewrites the English "why"; the action is always the template's · *Accepted* (resolves D13's Granite part)
 Measured on s390x: asked to write a warning from the reason codes, the 350M base model looped ("Do not mention ...") or stated falsehoods; asked to rewrite the template text it gave good explanations but told the customer to call "their number" in all 30 samples, which in a digital-arrest scam is the scammer's number.

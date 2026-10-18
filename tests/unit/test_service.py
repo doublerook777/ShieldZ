@@ -349,54 +349,63 @@ def low_env(tmp_path):
     logging.getLogger("shieldz").handlers.clear()
 
 
-def test_policy_holds_a_large_first_payment_to_an_unknown_payee(low_env):
+def test_policy_holds_a_large_share_of_the_balance_sent_to_a_new_payee(low_env):
+    """The model alone scores this 0.03-0.15 (a partial transfer, not a full drain): ALLOW."""
     client, pipeline = low_env
-    body = payment(tx_type="PAYMENT", amount=8500.0, payer_balance_before=490000.0)
+    body = payment(tx_type="TRANSFER", amount=245000.0, payer_balance_before=490000.0)
     first = client.post("/v1/score", json=body).json()
     assert first["decision"] == "REVIEW" and first["risk_level"] == "MEDIUM"
-    assert [r["code"] for r in first["reason_codes"]] == ["NEW_RECIPIENT"]
+    assert [r["code"] for r in first["reason_codes"]] == ["NEW_RECIPIENT", "LARGE_AMOUNT"]
     assert pipeline.outbox.count("pending") == 1  # the explainer gets the job
     # the payee is known after one payment: the same request is now an ALLOW
     assert client.post("/v1/score", json=body).json()["decision"] == "ALLOW"
 
 
-def test_policy_leaves_known_payees_and_small_amounts_alone(low_env):
+def test_policy_does_not_add_friction_to_ordinary_payments(low_env):
+    """Paying a new merchant is normal: a clinic bill, a small transfer, a known payee."""
     client, _ = low_env
+    clinic = payment(tx_type="PAYMENT", amount=8500.0, payer_balance_before=490000.0)
+    assert client.post("/v1/score", json=clinic).json()["decision"] == "ALLOW"
     utility = payment(
-        tx_type="PAYMENT", payee_account="DEMO-ELECTRICITY-BOARD", amount=8500.0,
+        tx_type="TRANSFER", payee_account="DEMO-ELECTRICITY-BOARD", amount=245000.0,
         payer_balance_before=490000.0,
     )  # fmt: skip
-    assert client.post("/v1/score", json=utility).json()["decision"] == "ALLOW"
-    small = payment(tx_type="PAYMENT", payee_account="NEW-SMALL-1", amount=900.0,
-                    payer_balance_before=490000.0)  # fmt: skip
-    assert client.post("/v1/score", json=small).json()["decision"] == "ALLOW"
+    assert client.post("/v1/score", json=utility).json()["decision"] == "ALLOW"  # known payee
+    small = payment(
+        tx_type="TRANSFER", payee_account="NEW-SMALL-2", amount=900.0, payer_balance_before=1500.0
+    )  # 60% of the balance, but only Rs 900
+    assert client.post("/v1/score", json=small).json()["decision"] == "ALLOW"  # amount floor
 
 
 def test_policy_can_be_switched_off_and_never_lowers_a_decision(tmp_path):
     from dataclasses import replace
 
-    from shieldz.contracts import DecisionKind
+    from shieldz.contracts import DecisionKind, FeatureVector
     from shieldz.service.decide import apply_policy
 
-    off = replace(DEFAULT_THRESHOLDS, review_new_payee_min=None)
+    off = replace(DEFAULT_THRESHOLDS, review_new_payee_ratio=None)
     f = {
-        "type_TRANSFER": 0, "type_CASH_OUT": 0, "type_PAYMENT": 1, "type_CASH_IN": 0,
-        "type_DEBIT": 0, "log_amount": 12.0, "amount_to_balance": 0.01, "drains_account": 0,
-        "payee_is_merchant": 1, "payee_prior_inbound": 0, "payee_balance_before_zero": 0,
-        "hour_of_day": 11,
+        "type_TRANSFER": 1, "type_CASH_OUT": 0, "type_PAYMENT": 0, "type_CASH_IN": 0,
+        "type_DEBIT": 0, "log_amount": 12.4, "amount_to_balance": 0.5, "drains_account": 0,
+        "payee_is_merchant": 0, "payee_prior_inbound": 0, "payee_balance_before_zero": 1,
+        "hour_of_day": 23,
     }  # fmt: skip
-    from shieldz.contracts import FeatureVector
-
     vec = FeatureVector(**f)
-    assert apply_policy(DecisionKind.ALLOW, vec, DEFAULT_THRESHOLDS)[0] == DecisionKind.REVIEW
+    kind, risk, reasons = apply_policy(DecisionKind.ALLOW, vec, DEFAULT_THRESHOLDS)
+    assert kind == DecisionKind.REVIEW and len(reasons) == 2
     assert apply_policy(DecisionKind.ALLOW, vec, off)[0] == DecisionKind.ALLOW
     assert apply_policy(DecisionKind.BLOCK, vec, DEFAULT_THRESHOLDS)[0] == DecisionKind.BLOCK
-    assert apply_policy(DecisionKind.REVIEW, vec, DEFAULT_THRESHOLDS)[2] is False
+    assert apply_policy(DecisionKind.REVIEW, vec, DEFAULT_THRESHOLDS)[2] == []
+    ordinary = FeatureVector(**{**f, "amount_to_balance": 0.017, "log_amount": 9.05})
+    assert apply_policy(DecisionKind.ALLOW, ordinary, DEFAULT_THRESHOLDS)[0] == DecisionKind.ALLOW
 
 
-def test_thresholds_file_can_disable_the_policy(tmp_path):
+def test_thresholds_file_can_tune_or_disable_the_policy(tmp_path):
     f = tmp_path / "thresholds.json"
-    f.write_text(json.dumps({"t_review": 0.7, "t_block": 0.75, "review_new_payee_min": None}))
-    assert load_thresholds(f).review_new_payee_min is None
+    f.write_text(json.dumps({"t_review": 0.7, "t_block": 0.75, "review_new_payee_ratio": None}))
+    assert load_thresholds(f).review_new_payee_ratio is None
     f.write_text(json.dumps({"t_review": 0.7, "t_block": 0.75}))
-    assert load_thresholds(f).review_new_payee_min == 5000.0
+    loaded = load_thresholds(f)
+    assert loaded.review_new_payee_ratio == 0.4 and loaded.review_new_payee_min_amount == 10_000.0
+    f.write_text(json.dumps({"t_review": 0.7, "t_block": 0.75, "review_new_payee_ratio": 0.6}))
+    assert load_thresholds(f).review_new_payee_ratio == 0.6

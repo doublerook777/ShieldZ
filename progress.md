@@ -15,7 +15,7 @@
 | **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 22:00 IST. The 05:30 feature freeze in the plan has passed; new work is now time-boxed against the video (see Next action). |
 | **Current milestone** | M0-M6 ✅ with s390x evidence in `results/` · M7: backend, UI, scenarios done; timed dress rehearsal open · M8: video, public repo, submission open |
 | **Active branches** | `main` |
-| **Blockers** | None technical. Needs a human: (1) review of the Granite prompt/guard changes (C-008); (2) decide whether to keep the policy rule that makes scenario C a REVIEW (`review_new_payee_min` in `thresholds.json`, default 5000; the model alone scores B and C identically); (3) record the video. |
+| **Blockers** | None technical. Needs a human: (1) review of the Granite prompt/guard changes (C-008); (2) the policy rule was narrowed on 2026-10-18 after review: REVIEW now needs a NEW payee AND at least 40% of the balance AND at least Rs 10,000 (`review_new_payee_ratio` / `review_new_payee_min_amount`, ADR D17), so ordinary payments such as the Rs 8,500 clinic bill are ALLOW; (3) record the video. |
 | **Main-build baton** | Member 1 |
 | **Next action** | Dress rehearsal on the VM through the SSH tunnel (timed), then the video. Before recording: `python scripts/prewarm_explanations.py` (fills the Granite cache: say in the video that explanation texts are generated once per reason combination and cached), and drop any backlog with `Outbox.skip_pending`. Video must say: Granite explains the "why" in English; the action sentence and the Hindi/Tamil texts are reviewed templates; REVIEW comes from a policy rule next to the model. Then README numbers, make repo public, submit by 09:30. |
 
@@ -85,7 +85,7 @@ Tick a box only when the check really passed. Put the evidence (a file in `resul
 
 ### M7 — Demo and integration
 - [x] Demo UI (`service/static/index.html`) wired to real backend endpoints (`/v1/score`, `/v1/explanations`, `/v1/leak-scorecard`, `/v1/audit/verify`)
-- [x] Demo scenarios on s390x with the real engine (`results/z_demo_run.txt`): A BLOCK 3.9 ms, B ALLOW 1.6 ms, C REVIEW 1.6 ms. C needs the policy rule in `service/decide.py` (the model scores B and C identically, 0.0265). Scenario A uses an exact full drain (balance 485,000): the model keys on `drains_account`.
+- [x] Demo scenarios on s390x with the real engine (`results/z_demo_run.txt`): A BLOCK 3.9 ms, B ALLOW 1.6 ms, C REVIEW 1.6 ms (measured with the first, broader rule; superseded: C is now ALLOW and the new scenario D, a Rs 2,45,000 transfer to a new payee, is the REVIEW case: re-measured in the next entry). Scenario A uses an exact full drain (balance 485,000): the model keys on `drains_account`.
 - [ ] Clean `make z-up` → 3 scenarios → explanations → verify → scorecard 0: each step verified separately above, not yet as one timed run from an empty runtime dir
 - [ ] Timed dress rehearsal · [x] Feature freeze declared
 

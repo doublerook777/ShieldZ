@@ -112,10 +112,10 @@ class Pipeline:
         features = engineer(inp, self.history)
 
         kind, risk = decide(self.engine.score(features), self.thresholds)
-        kind, risk, by_policy = apply_policy(kind, features, self.thresholds)
+        kind, risk, policy_reasons = apply_policy(kind, features, self.thresholds)
         reasons: list[Reason] = []
-        if by_policy:  # the model saw nothing wrong, so its reasons would be empty or generic
-            reasons = [Reason(code=ReasonCode.NEW_RECIPIENT, level=Level.MEDIUM)]
+        if policy_reasons:  # the model saw nothing wrong, so its reasons would be empty or generic
+            reasons = [Reason(code=c, level=lv) for c, lv in policy_reasons]
         elif kind != DecisionKind.ALLOW:
             pairs = self.engine.reasons(features)[:MAX_REASONS] or [
                 (ReasonCode.OTHER_PATTERN, Level.LOW)
