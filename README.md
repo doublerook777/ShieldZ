@@ -83,6 +83,8 @@ bash scripts/z_evidence.sh                 # reproduce the VM evidence in result
 
 The full walk-through of the demo page, the proof commands and the tamper demo is in [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
 
+A notebook that runs the whole story step by step, with its outputs from the LinuxONE VM (s390x, trained model), is in [notebooks/shieldz_walkthrough.ipynb](notebooks/shieldz_walkthrough.ipynb).
+
 ## Repository map
 
 | Path | What is in it |
@@ -93,7 +95,7 @@ The full walk-through of the demo page, the proof commands and the tamper demo i
 | `src/shieldz/explainer/` | prompt builder, guards, template texts, Granite wrapper, worker |
 | `src/shieldz/audit/` | hash chain, signed checkpoints, verification |
 | `src/shieldz/leak_audit/` | canaries, scanner, sinks, scorecard |
-| `tests/`, `scripts/`, `results/`, `docs/`, `containers/` | tests, tools, committed evidence, design docs, the image |
+| `notebooks/`, `tests/`, `scripts/`, `results/`, `docs/`, `containers/` | the walkthrough notebook, tests, tools, committed evidence, design docs, the image |
 
 Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Why each choice: [docs/DECISIONS.md](docs/DECISIONS.md)
 
