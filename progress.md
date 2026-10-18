@@ -11,8 +11,8 @@
 | | |
 |---|---|
 | **Last updated** | 2026-10-18 ~01:40 IST · Member 1 (also covering Member 3 over SSH): VM redeployed at `c12b386`+. On s390x with the real XGBoost engine: scenarios A BLOCK / B ALLOW / C REVIEW; Granite quality 28/30 (93%) at 10.4 s p50 per fresh generation; busy-explainer p99 11.5 / 23.4 ms; audit chain 22,062 entries verified; live Leak Audit with real Granite: 0 leaks, 11 sinks, 4.8 MB. 136 tests pass. |
-| **Submission deadline** | **Sun 18 Oct 2026, 10:00 IST** (we aim to submit by 09:30) |
-| **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 10:00 IST (18 h); feature freeze 05:30 |
+| **Submission deadline** | **Sun 18 Oct 2026, 22:00 IST** (stated by the team lead at 14:30 IST; the original plan assumed 10:00 IST, so treat that figure in `docs/` as outdated). Aim to submit by 21:00. |
+| **Build window** | Sat 17 Oct 16:00 → Sun 18 Oct 22:00 IST. The 05:30 feature freeze in the plan has passed; new work is now time-boxed against the video (see Next action). |
 | **Current milestone** | M0-M6 ✅ with s390x evidence in `results/` · M7: backend, UI, scenarios done; timed dress rehearsal open · M8: video, public repo, submission open |
 | **Active branches** | `main` |
 | **Blockers** | None technical. Needs a human: (1) review of the Granite prompt/guard changes (C-008); (2) decide whether to keep the policy rule that makes scenario C a REVIEW (`review_new_payee_min` in `thresholds.json`, default 5000; the model alone scores B and C identically); (3) record the video. |
