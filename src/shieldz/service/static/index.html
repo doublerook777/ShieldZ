@@ -34,7 +34,7 @@
     .wordmark { font: 500 14px/20px var(--sans); }
 
     /* hero: the title, one line, and the scenario picker */
-    .hero { padding: 64px 0 32px; }
+    .hero { padding: 64px 0 24px; }
     h1 { font: 400 64px/70px var(--sans); letter-spacing: -1.6px; }
     .lede { margin-top: 8px; font: italic 400 32px/40px var(--serif); color: var(--body-strong); }
     .picker { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -81,6 +81,23 @@
                     border-radius: 3px; padding: 8px 10px; font: 400 14px/20px var(--sans); }
     .full { grid-column: 1 / -1; }
 
+    /* data view: what was typed versus what was kept */
+    .step { padding: 0 0 24px; }
+    .eyebrow { font: 400 12px/16px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--mute); margin-bottom: 12px; }
+    .tag { margin-left: 6px; padding: 0 4px; border: 1px solid var(--hairline); border-radius: 2px;
+           font: 400 11px/16px var(--mono); color: var(--mute); text-transform: none; letter-spacing: 0; }
+    .kept { padding: 32px 0 0; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card h4 { margin-top: 20px; font: 500 14px/20px var(--sans); color: var(--body-strong); }
+    table { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: 13px; line-height: 18px; }
+    th { text-align: left; font: 400 12px/16px var(--mono); color: var(--mute); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--hairline); }
+    td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; word-break: break-word; }
+    td.val { font-family: var(--mono); color: var(--body-strong); }
+    td.out { color: var(--body); }
+    pre { margin-top: 8px; padding: 12px; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 3px;
+          font: 400 12px/18px var(--mono); color: var(--body-strong); white-space: pre-wrap; word-break: break-word; }
+    .caption { margin-top: 8px; font-size: 13px; line-height: 18px; color: var(--mute); }
+
     /* proof */
     .proof { padding: 64px 0 48px; }
     h2 { font: 500 32px/40px var(--sans); letter-spacing: -0.8px; }
@@ -92,6 +109,7 @@
     dl { margin-top: 16px; font: 400 13px/18px var(--mono); }
     dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
     dt { color: var(--mute); }
+    dd { text-align: right; word-break: break-all; }
     .result { margin-top: 16px; font: 400 13px/18px var(--mono); color: var(--body-strong); word-break: break-word; }
     .card .btn { margin-top: 16px; }
 
@@ -100,7 +118,7 @@
     @media (max-width: 767px) {
       h1, .verdict { font-size: 48px; line-height: 52px; letter-spacing: -1.2px; }
       .hero { padding-top: 32px; }
-      .cols, .cards, .grid { grid-template-columns: 1fr; }
+      .cols, .cards, .grid, .two { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -114,8 +132,11 @@
   <main class="wrap">
     <section class="hero">
       <h1>ShieldZ</h1>
-      <p class="lede">Real-time payment protection.</p>
+      <p class="lede">Real-time payment protection that keeps no personal data.</p>
+    </section>
 
+    <section class="step">
+      <div class="eyebrow">1 &middot; The payment</div>
       <div class="picker" role="group" aria-label="Choose a payment">
         <button class="choice" type="button" data-key="digital_arrest" aria-pressed="true">Scam transfer</button>
         <button class="choice" type="button" data-key="utility_bill" aria-pressed="false">Electricity bill</button>
@@ -124,31 +145,28 @@
       </div>
       <p class="summary" id="summary"></p>
 
-      <details>
-        <summary>Payment details</summary>
-        <p class="note">Names, phone numbers and memos are removed before scoring. Account numbers are replaced by a keyed hash.</p>
-        <form id="form" class="grid" autocomplete="off" onsubmit="return false">
-          <div><label for="payer_name">Payer name</label><input id="payer_name"></div>
-          <div><label for="payer_phone">Payer phone</label><input id="payer_phone"></div>
-          <div><label for="payer_account">Payer account</label><input id="payer_account"></div>
-          <div><label for="payer_balance_before">Payer balance before</label><input id="payer_balance_before" type="number" step="any"></div>
-          <div><label for="payee_name">Payee name</label><input id="payee_name"></div>
-          <div><label for="payee_account">Payee account or UPI id</label><input id="payee_account"></div>
-          <div><label for="amount">Amount</label><input id="amount" type="number" step="any"></div>
-          <div><label for="tx_type">Type</label>
-            <select id="tx_type">
-              <option>TRANSFER</option><option>PAYMENT</option><option>CASH_OUT</option><option>CASH_IN</option><option>DEBIT</option>
-            </select></div>
-          <div class="full"><label for="memo">Memo</label><input id="memo"></div>
-          <div><label for="family_contact">Family contact</label><input id="family_contact"></div>
-          <div><label for="language">Explanation language</label>
-            <select id="language"><option value="EN">English</option><option value="HI">Hindi</option><option value="TA">Tamil</option></select></div>
-        </form>
-      </details>
+      <form id="form" class="grid" autocomplete="off" onsubmit="return false" style="margin-top:16px">
+        <div><label for="payer_name">Payer name <span class="tag">removed</span></label><input id="payer_name"></div>
+        <div><label for="payer_phone">Payer phone <span class="tag">removed</span></label><input id="payer_phone"></div>
+        <div><label for="payer_account">Payer account <span class="tag">hashed</span></label><input id="payer_account"></div>
+        <div><label for="payer_balance_before">Payer balance before <span class="tag">number only</span></label><input id="payer_balance_before" type="number" step="any"></div>
+        <div><label for="payee_name">Payee name <span class="tag">removed</span></label><input id="payee_name"></div>
+        <div><label for="payee_account">Payee account or UPI id <span class="tag">hashed</span></label><input id="payee_account"></div>
+        <div><label for="amount">Amount <span class="tag">number only</span></label><input id="amount" type="number" step="any"></div>
+        <div><label for="tx_type">Type <span class="tag">kept as a code</span></label>
+          <select id="tx_type">
+            <option>TRANSFER</option><option>PAYMENT</option><option>CASH_OUT</option><option>CASH_IN</option><option>DEBIT</option>
+          </select></div>
+        <div class="full"><label for="memo">Memo <span class="tag">removed</span></label><input id="memo"></div>
+        <div><label for="family_contact">Family contact <span class="tag">removed</span></label><input id="family_contact"></div>
+        <div><label for="language">Explanation language <span class="tag">kept as a code</span></label>
+          <select id="language"><option value="EN">English</option><option value="HI">Hindi</option><option value="TA">Tamil</option></select></div>
+      </form>
     </section>
 
     <section class="stage" id="stage" aria-live="polite">
-      <p class="idle" id="idle">Choose a payment above and press Screen payment. The decision appears here.</p>
+      <div class="eyebrow">2 &middot; The decision</div>
+      <p class="idle" id="idle">Press Screen payment. The decision appears here, and below it you can see what happened to the data you typed.</p>
       <div id="out" hidden>
         <div class="head">
           <div>
@@ -168,6 +186,29 @@
             <div class="src" id="src"></div>
             <div class="family" id="family" hidden></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="kept" id="kept" hidden>
+      <div class="eyebrow">3 &middot; What happened to the data</div>
+      <div class="two">
+        <div class="card">
+          <h3>What you typed</h3>
+          <p>Each field, and what the system did with it.</p>
+          <table>
+            <thead><tr><th>Field</th><th>You entered</th><th>What happened</th></tr></thead>
+            <tbody id="typed"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>What the system kept</h3>
+          <p>The record stored for this payment, read back from the audit trail.</p>
+          <dl id="stored"></dl>
+          <p class="caption">Nothing here identifies the customer or the amount.</p>
+          <h4>Shown to the language model</h4>
+          <pre id="prompt">Waiting for the explainer</pre>
+          <p class="caption">Fixed text plus the reason codes. No digits, no customer data.</p>
         </div>
       </div>
     </section>
@@ -248,6 +289,17 @@
     const SEEDED_PAYEE = "DEMO-ELECTRICITY-BOARD";
     const FIELDS = ["payer_name", "payer_phone", "payer_account", "payer_balance_before", "payee_name",
                     "payee_account", "amount", "tx_type", "memo", "family_contact", "language"];
+    const OUTCOME = [
+      ["payer_name", "Payer name", "Removed before scoring"],
+      ["payer_phone", "Payer phone", "Removed before scoring"],
+      ["payer_account", "Payer account", "Replaced by a keyed hash"],
+      ["payee_name", "Payee name", "Removed before scoring"],
+      ["payee_account", "Payee account", "Replaced by a keyed hash"],
+      ["memo", "Memo", "Removed before scoring"],
+      ["family_contact", "Family contact", "Removed before scoring"],
+      ["amount", "Amount", "Used as a number, not stored"],
+      ["payer_balance_before", "Balance before", "Used as a number, not stored"]
+    ];
     const MEANING = {
       BLOCK: "Payment stopped before any money moved.",
       REVIEW: "Held until the customer confirms it.",
@@ -257,6 +309,7 @@
     const $ = (id) => document.getElementById(id);
     let current = "digital_arrest";
     let poll = null;
+    let typed = {};
 
     function pick(key) {
       current = key;
@@ -280,6 +333,8 @@
         payee_balance_before: 0.0, payee_is_merchant: $("tx_type").value === "PAYMENT",
         timestamp: new Date().toISOString()
       };
+      typed = {};
+      FIELDS.forEach((f) => { typed[f] = $(f).value; });
       // Once paid, a payee counts as known. Use a fresh payee each press, except the seeded utility.
       const base = SCENARIO_DATA[current].payee_account;
       if (payment.payee_account === base && base !== SEEDED_PAYEE) {
@@ -317,14 +372,53 @@
       const alert = SCENARIO_DATA[current].alert_msg;
       $("family").hidden = d.decision === "ALLOW" || !alert;
       $("family").textContent = alert ? "Message to the family guardian (preview, not sent): " + alert : "";
+      renderTyped();
+      $("kept").hidden = false;
+      $("stored").innerHTML = "";
+      loadRecords(d.decision_id);
       if (d.decision === "ALLOW") {
         $("explain").textContent = "No explanation needed.";
         $("src").textContent = "";
+        $("prompt").textContent = "Nothing. No explanation was needed, so the language model was not used.";
       } else {
+        $("prompt").textContent = "Waiting for the explainer";
         $("explain").textContent = "Writing the explanation";
         $("src").textContent = "";
         followExplanation(d.decision_id, Date.now());
       }
+    }
+
+    function esc(v) {
+      return String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+
+    function renderTyped() {
+      $("typed").innerHTML = OUTCOME.map((r) =>
+        '<tr><td>' + r[1] + '</td><td class="val">' + esc(typed[r[0]]) + '</td><td class="out">' + r[2] + "</td></tr>").join("");
+    }
+
+    // The audit entry is written before the answer returns; the prompt journal entry appears after the explainer runs.
+    async function loadRecords(id) {
+      try {
+        const res = await fetch("/v1/records/" + id);
+        if (!res.ok) return;
+        const r = await res.json();
+        if (r.audit) {
+          const a = r.audit;
+          const rows = [
+            ["decision_id", a.decision_id], ["decision", a.decision], ["risk_level", a.risk_level],
+            ["reason_codes", a.reason_codes.map((x) => x.code).join(", ") || "none"],
+            ["model_version", a.model_version], ["time", a.ts], ["position in chain", "#" + a.seq],
+            ["chain hash", a.hash.slice(0, 16) + "..."]
+          ];
+          $("stored").innerHTML = rows.map((x) => "<div><dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd></div>").join("");
+        }
+        if (r.journal && !(r.audit && r.audit.decision === "ALLOW")) {
+          $("prompt").textContent = r.journal.prompt
+            ? r.journal.prompt
+            : "Nothing. The reviewed template text was used, so no language model was involved.";
+        }
+      } catch (e) { /* the decision is already on screen */ }
     }
 
     // The template text is ready at once; a language model may replace it a few seconds later.
@@ -334,6 +428,7 @@
         if (res.ok) {
           const e = await res.json();
           $("explain").textContent = e.text;
+          loadRecords(id);
           $("src").textContent = e.source === "granite"
             ? "Written by the Granite language model"
             : "Reviewed template text (a language model may replace it)";

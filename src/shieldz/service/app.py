@@ -23,6 +23,7 @@ from shieldz.audit.verify import verify_audit_trail
 from shieldz.contracts import Decision, Explanation, PaymentRequest
 from shieldz.privacy.redact_log import log_event, setup_logging
 from shieldz.service.pipeline import Pipeline
+from shieldz.service.records import find_record
 
 DECISION_ID = r"^[0-9a-f]{32}$"
 STATIC_DIR = FsPath(__file__).parent / "static"
@@ -96,6 +97,15 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
             "engine": engine.name,
             "model_version": engine.version,
         }
+
+    @app.get("/v1/records/{decision_id}")
+    def records(decision_id: str = Path(pattern=DECISION_ID)):
+        """What the system kept about one decision: its audit entry and its prompt-journal entry."""
+        audit = find_record(config.audit_chain_file(), decision_id)
+        journal = find_record(config.runtime_dir() / "journal" / "prompts.jsonl", decision_id)
+        if audit is None and journal is None:
+            return JSONResponse(status_code=404, content={"detail": "no record"})
+        return {"audit": audit, "journal": journal}
 
     @app.get("/v1/audit/verify")
     def audit_verify() -> dict:

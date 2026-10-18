@@ -168,3 +168,44 @@ def test_ui_scenarios_match_the_cli_scenarios():
         ), key
         assert ui_value(block, "tx_type") == sc.payment["tx_type"], key
         assert ui_value(block, "payee_account") == sc.payment["payee_account"], key
+
+
+def test_records_endpoint_returns_only_what_the_system_stored(audited):
+    from shieldz.explainer.journal import PromptJournal
+
+    client, tmp_path = audited
+    sent = body(payer_name="Zubin Qureshi", payer_phone="+919812345678", memo="CANARY-rec1")
+    decision = client.post("/v1/score", json=sent).json()
+    got = client.get(f"/v1/records/{decision['decision_id']}")
+    assert got.status_code == 200
+    record = got.json()
+    assert record["audit"]["decision_id"] == decision["decision_id"]
+    assert set(record["audit"]) == {
+        "seq", "ts", "decision_id", "decision", "risk_level", "reason_codes",
+        "model_version", "prev_hash", "hash",
+    }  # fmt: skip
+    assert record["journal"] is None  # the explainer has not run
+    for secret in ("Zubin", "9812345678", "CANARY-rec1", "ACC-7731", "48250"):
+        assert secret not in got.text
+
+    PromptJournal(config.runtime_dir() / "journal" / "prompts.jsonl").record(
+        decision["decision_id"], "Rewrite ...", "Because ...", "granite", "EN"
+    )
+    assert (
+        client.get(f"/v1/records/{decision['decision_id']}").json()["journal"]["source"]
+        == "granite"
+    )
+    assert client.get("/v1/records/" + "0" * 32).status_code == 404
+    assert client.get("/v1/records/not-an-id").status_code == 422
+
+
+def test_find_record_reads_the_tail_and_falls_back_to_the_whole_file(tmp_path):
+    from shieldz.service.records import find_record
+
+    path = tmp_path / "log.jsonl"
+    lines = [json.dumps({"decision_id": f"{i:032x}", "n": i}) for i in range(500)]
+    path.write_text("\n".join(lines) + "\n")
+    assert find_record(path, f"{499:032x}", tail_bytes=2000)["n"] == 499  # in the tail
+    assert find_record(path, f"{3:032x}", tail_bytes=2000)["n"] == 3  # only in the whole file
+    assert find_record(path, "f" * 32) is None
+    assert find_record(tmp_path / "missing.jsonl", "a" * 32) is None

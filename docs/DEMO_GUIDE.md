@@ -46,26 +46,30 @@ docker exec shieldz-api python -c "from shieldz.outbox.queue import Outbox; prin
 
 ## 3. Walk through the UI (about 3 minutes)
 
-The page is one column. The title is **ShieldZ**. The page itself does not show the platform; show `s390x` from the **Platform** row of the Privacy check card, and from `curl localhost:8000/healthz` or `uname -m` on the VM.
+The page is one column and follows the data. The title is **ShieldZ**. The page itself does not show the platform; show `s390x` from the **Platform** row of the Privacy check card, and from `curl localhost:8000/healthz` or `uname -m` on the VM.
 
-1. Pick a payment with the three buttons (**Scam transfer**, **Electricity bill**, **Clinic payment**). The line under them tells the story. **Payment details** opens the editable form.
-2. Press **Screen payment**. The decision appears in the large panel and is the centre of the page:
+**1. The payment.** Pick one of three payments (**Scam transfer**, **Electricity bill**, **Clinic payment**); the form fills in. Every field carries a small tag saying what happens to it: *removed*, *hashed*, *number only* or *kept as a code*. That is the privacy design in one glance. Press **Screen payment**.
+
+**2. The decision.** The large panel is the real-time result (a few ms):
 
 | Payment | Panel | What to say |
 |---|---|---|
-| Scam transfer | Filled off-white panel, **Blocked**, a few ms, reasons AMOUNT_HIGH_VS_BALANCE, MULE_ACCOUNT_PATTERN, ACCOUNT_DRAIN. | The decision never waits for the language model. |
-| Electricity bill | Plain panel, **Allowed**, about 1-2 ms, no reasons. | Normal payments cost the customer nothing. |
+| Scam transfer | Filled off-white panel, **Blocked**, reasons AMOUNT_HIGH_VS_BALANCE, MULE_ACCOUNT_PATTERN, ACCOUNT_DRAIN. | The decision never waits for the language model. |
+| Electricity bill | Plain panel, **Allowed**, no reasons. | Normal payments cost the customer nothing. |
 | Clinic payment | Outlined panel, **Held for review**, reason NEW_RECIPIENT. | A policy rule next to the model holds a first payment of Rs 5,000 or more to an unknown payee (ADR D17). |
 
-   The explanation shows the reviewed template text at once, and the small line under it changes to "Written by the Granite language model" when Granite's wording replaces it (instantly if cached; in template-only mode it stays on the template). A family-guardian message appears as a **preview**; nothing is sent.
-3. **Proof** section, left card **Privacy check**: loads on its own. Expect PASS, 0 leaks, 11 places searched, planted canaries 10 of 10, never-sent decoys 0 of 1,000.
-4. **Proof**, right card **Tamper check**: press **Verify audit trail**. Expect "Chain valid: N entries verified OK".
+The explanation shows the reviewed template text at once; the small line under it changes to "Written by the Granite language model" when Granite's wording replaces it (instantly if cached; in template-only mode it stays on the template). The family-guardian message is a **preview**; nothing is sent.
+
+**3. What happened to the data.** The most important part for the privacy story:
+- **What you typed** (left): each field, the value you entered, and what the system did with it (removed, hashed, or used as a number and not stored).
+- **What the system kept** (right): the record read back from the audit trail through `GET /v1/records/{decision_id}`: decision id, decision, risk level, reason codes, model version, time, position and hash in the chain. Nothing in it identifies the customer or the amount.
+- **Shown to the language model**: the exact prompt from the prompt journal (fixed text plus the reason codes, no digits, no customer data). It fills in when the explainer has run. In template-only mode, or for Hindi and Tamil, or for an Allowed payment, the box says no language model was used. **To show the real prompt on camera, run the explainer with Granite (`make z-up`, not `EXPLAINER=template`).**
+
+**4. Proof.** Left card **Privacy check**: the saved result of the canary audit (PASS, 0 leaks, 11 places searched, planted canaries 10 of 10, never-sent decoys 0 of 1,000). It is a stored result, not re-run on page load. Right card **Tamper check**: press **Verify audit trail**; the server re-verifies the whole signed chain.
 
 Decisions are shown by treatment, not colour: Blocked is a filled panel, Review has a heavy outline, Allowed is plain.
 
-Each press of **Screen payment** uses a **fresh payee** automatically (once you pay someone they count as known, and the same story would score lower). The electricity board is the one seeded payee that is not renamed.
-
-The first press may take a few extra ms (cold caches). Press once off camera.
+Each press of **Screen payment** uses a **fresh payee** automatically (once you pay someone they count as known, and the same story would score lower). The electricity board is the one seeded payee that is not renamed. The first press may take a few extra ms (cold caches); press once off camera.
 
 ## 4. Proof for the camera (VM)
 
