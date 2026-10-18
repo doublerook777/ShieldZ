@@ -6,6 +6,8 @@ IMAGE ?= shieldz:latest
 # Granite weights: the L1CC base image already contains /home/ibm-user/granite-4.0-h-350m-base-be.f16.gguf,
 # so the explainer finds them without a mount. Set GRANITE_GGUF to a host file to use other weights.
 GRANITE_GGUF ?=
+# Explanation mode: granite (default) or template (no LLM loaded: instant, reviewed texts only)
+EXPLAINER ?= granite
 # Decision engine in the api container: xgboost needs artifacts/model/ (model.json, thresholds.json)
 ENGINE ?= xgboost
 # Cores for the benchmark client: everything except the api's core 0 (nproc = 3 on our VM)
@@ -54,8 +56,8 @@ z-up: z-build
 	docker run -d --name shieldz-api --network host $$API \
 	  -e SHIELDZ_ENGINE=$(ENGINE) \
 	  -v $(CURDIR)/artifacts:/app/artifacts -v $(CURDIR)/results:/app/results:ro $(IMAGE) api; \
-	LLM="-e SHIELDZ_EXPLAINER=granite"; \
-	if [ -n "$(GRANITE_GGUF)" ]; then \
+	LLM="-e SHIELDZ_EXPLAINER=$(EXPLAINER)"; \
+	if [ "$(EXPLAINER)" = granite ] && [ -n "$(GRANITE_GGUF)" ]; then \
 	  LLM="$$LLM -v $(GRANITE_GGUF):/models/granite.gguf:ro -e SHIELDZ_GRANITE_PATH=/models/granite.gguf"; fi; \
 	docker run -d --name shieldz-explainer --network host $$EXP $$LLM \
 	  -v $(CURDIR)/artifacts:/app/artifacts $(IMAGE) explainer; \
