@@ -30,9 +30,8 @@
 
     /* nav */
     .nav { border-bottom: 1px solid var(--hairline); }
-    .nav .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; padding-bottom: 10px; }
+    .nav .wrap { padding-top: 10px; padding-bottom: 10px; }
     .wordmark { font: 500 14px/20px var(--sans); }
-    #health { font: 400 13px/18px var(--mono); color: var(--mute); }
 
     /* hero: the title, one line, and the scenario picker */
     .hero { padding: 64px 0 32px; }
@@ -109,7 +108,6 @@
   <header class="nav">
     <div class="wrap">
       <span class="wordmark">ShieldZ</span>
-      <span id="health">connecting</span>
     </div>
   </header>
 
@@ -349,13 +347,6 @@
       } catch (e) { /* the decision is already on screen */ }
     }
 
-    async function health() {
-      try {
-        const h = await (await fetch("/healthz")).json();
-        $("health").textContent = h.platform + " / " + h.engine;
-      } catch (e) { $("health").textContent = "offline"; }
-    }
-
     async function scorecard() {
       const box = $("scorecard");
       try {
@@ -389,7 +380,6 @@
     $("go").addEventListener("click", screen);
     $("verify").addEventListener("click", verify);
     pick(current);
-    health();
     scorecard();
   </script>
 </body>

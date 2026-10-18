@@ -46,7 +46,7 @@ docker exec shieldz-api python -c "from shieldz.outbox.queue import Outbox; prin
 
 ## 3. Walk through the UI (about 3 minutes)
 
-The page is one column. The title is **ShieldZ**; the top right shows the platform and engine read from `/healthz` (for example `s390x / xgboost`).
+The page is one column. The title is **ShieldZ**. The page itself does not show the platform; show `s390x` from the **Platform** row of the Privacy check card, and from `curl localhost:8000/healthz` or `uname -m` on the VM.
 
 1. Pick a payment with the three buttons (**Scam transfer**, **Electricity bill**, **Clinic payment**). The line under them tells the story. **Payment details** opens the editable form.
 2. Press **Screen payment**. The decision appears in the large panel and is the centre of the page:
