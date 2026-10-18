@@ -12,8 +12,6 @@ Payment scams hit elderly, rural and first-time digital users hardest, and insta
 1. **Too slow.** A warning after the money has left is useless.
 2. **Leaky.** Explaining a block usually means sending names, account numbers and amounts to an AI model or into logs. Fraud detection ends up creating a second privacy problem.
 
-Sourced figures are listed under [Problem statistics](#problem-statistics-cited-in-the-pitch--video) below.
-
 ## Proposed solution
 
 ShieldZ makes the decision first, in milliseconds, and keeps personal data out of everything that follows.
@@ -180,10 +178,3 @@ All code was written during the event window (Oct 17–18, 2026). Datasets and o
 | pytest | Tests | https://pytest.org | MIT |
 
 _Add a row for every new library (rule 5 of the event)._
-
-### Problem statistics cited in the pitch & video:
-Checked against the sources below on 18 Oct 2026. Where a figure comes from a news report of an official dataset, the report is linked.
-1. **Reserve Bank of India, Annual Report 2023–24 (frauds of ₹1 lakh and above):** 36,075 bank frauds were reported in FY24. Of these, **29,082 were card and internet (digital payment) frauds, involving ₹1,457 crore**, about 81% of the cases by number ([Rajya Sabha answer quoting the RBI table](https://rsdebate.nic.in/bitstream/123456789/757795/1/PQ_267_04022025_U239_p357_p357.pdf), [Inc42](https://inc42.com/buzz/online-fraud-cases-surged-334-yoy-in-fy24-says-rbi)).
-2. **Indian Cyber Crime Coordination Centre (I4C, MHA), January to April 2024:** about **₹1,776 crore** lost across four cyber-fraud categories (trading, investment, "digital arrest" and romance scams), of which **₹120.30 crore** was lost to "digital arrest" scams. These are reported losses, not a complete count ([The Wire](https://thewire.in/news/indians-lost-rs-120-crore-in-digital-arrest-frauds-in-first-quarter-of-2024-report)).
-3. **U.S. Federal Trade Commission, Consumer Sentinel 2023:** consumers reported losing a record **$10 billion** to fraud, **$2.7 billion** of it to imposter scams. Reported median loss for people aged 80 and over was **$1,450**, against $500 for ages 60 to 69 ([FTC](https://www.ftc.gov/node/86563), [ABA Banking Journal](https://bankingjournal.aba.com/2024/11/ftc-older-adults-lost-up-to-61-5b-to-fraud-in-2023/), [AARP](https://www.aarp.org/money/scams-fraud/info-2024/2023-ftc-consumer-losses)).
-4. **National Crime Records Bureau, Crime in India 2022:** 65,893 cybercrime cases were registered, up 24.4% from 52,974 in 2021, and **64.8%** of them (42,710) were for fraud ([BOOM, citing the NCRB report](https://www.boomlive.in/explainers/telangana-records-most-cyber-crime-cases-for-the-second-time-in-a-row-shows-ncrb-report-23757)).
