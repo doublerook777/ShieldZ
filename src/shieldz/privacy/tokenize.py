@@ -1,4 +1,4 @@
-"""HMAC-SHA256 tokens for account identifiers (ADR D10).
+"""HMAC-SHA256 tokens for account identifiers.
 
 A plain hash of an account number can be reversed by hashing every possible number. A keyed
 HMAC cannot, without the pepper. The pepper lives only in artifacts/keys/ and is never committed.

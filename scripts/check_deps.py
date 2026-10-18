@@ -1,4 +1,4 @@
-"""Does a PyPI package run on s390x? (invariant I8, DECISIONS.md "Adding a dependency")
+"""Does a PyPI package run on s390x? Every new dependency must pass this check.
 
 Usage: python scripts/check_deps.py fastapi snapml==1.17.2
 

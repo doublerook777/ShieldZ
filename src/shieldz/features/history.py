@@ -3,7 +3,7 @@
 `payee_prior_inbound` is the number of earlier payments the payee received. Training counts it
 chronologically over PaySim; serving reads it from here. The count is bucketed (0 / 1-3 / 4+) so
 both sides see the same scale. The store is seeded at startup so a fresh service does not treat
-every payee as new (cold start, ADR D16):
+every payee as new (cold start):
   - `seed_counts`: e.g. PaySim inbound counts, already tokenized
   - `seed_from_csv`: `features/demo_seed.csv`, fake demo payees with a normal history
 """

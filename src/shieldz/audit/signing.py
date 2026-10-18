@@ -8,7 +8,7 @@ Signing **never runs in the request path**. A background daemon thread fires eve
 100 new entries *or* every second (whichever comes first) and appends one
 ``AuditCheckpoint`` line to ``audit/checkpoints.jsonl``.
 
-Backend selection (ADR D6 — tries each in order):
+Backend selection (tries each in order; some s390x images have no `cryptography` wheel):
     1. ``cryptography`` from Ubuntu apt / pip (preferred; C-accelerated, hardware-aware on z15+)
     2. Pure-Python Ed25519 from RFC 8032 (our own implementation; passes all §7.1 test vectors)
 
@@ -48,7 +48,7 @@ def _now_rfc3339() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Ed25519 backend loader — ADR D6
+# Ed25519 backend loader
 # ---------------------------------------------------------------------------
 
 

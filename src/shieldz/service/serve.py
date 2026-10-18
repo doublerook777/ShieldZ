@@ -16,7 +16,7 @@ import sys
 
 import uvicorn
 
-HOST = "127.0.0.1"  # host network: never 0.0.0.0 (runbook §5, ADR D8)
+HOST = "127.0.0.1"  # host network: never 0.0.0.0 (the demo is reached through an SSH tunnel)
 PORT = 8000
 
 

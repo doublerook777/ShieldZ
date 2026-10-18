@@ -195,7 +195,7 @@ class AuditEntry(BaseModel):
 
 
 class AuditCheckpoint(BaseModel):
-    """Signed chain head. One signature covers every entry up to `seq` (ADR D6)."""
+    """Signed chain head. One signature covers every entry up to `seq`."""
 
     model_config = _BASE
 

@@ -1,7 +1,7 @@
 """PaySim data loader, memory profiling, and time-based train/test splitting.
 
 Post-transaction columns (newbalanceOrig, newbalanceDest) and isFlaggedFraud are
-explicitly excluded from loading to prevent data leakage (ADR D12).
+explicitly excluded from loading to prevent data leakage.
 """
 
 from __future__ import annotations

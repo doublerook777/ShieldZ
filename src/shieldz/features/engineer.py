@@ -2,7 +2,8 @@
 
 One code path for training and serving: both call `_compute`, which works on numpy arrays.
 Serving passes arrays of length 1. Only decision-time columns are used. PaySim's
-`newbalanceOrig` / `newbalanceDest` are post-transaction and must never appear here (ADR D12).
+`newbalanceOrig` / `newbalanceDest` are post-transaction and must never appear here
+(they would leak the label).
 """
 
 from __future__ import annotations
