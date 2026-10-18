@@ -1,9 +1,11 @@
 """How much does the trained model add over simple rules and tiny decision trees?
 
-    docker run -i --rm --network none -v $PWD/data:/app/data:ro -v $PWD/artifacts:/app/artifacts:ro \
-        -v $PWD/results:/app/results shieldz:latest python scripts/baseline_compare.py
+    docker run -i --rm --network none -v $PWD/data:/app/data:ro \
+        -v $PWD/artifacts:/app/artifacts:ro -v $PWD/results:/app/results \
+        shieldz:latest python scripts/baseline_compare.py
 
-Same time-based holdout as results/MODEL_CARD.md (step > 600). Writes results/baseline_comparison.md.
+Same time-based holdout as results/MODEL_CARD.md (step > 600).
+Writes results/baseline_comparison.md.
 """
 
 from __future__ import annotations
@@ -71,11 +73,12 @@ lines = [
     "|---|---|---|---|---|---|",
     *[r[1] for r in rows],
     "",
-    "**Reading it.** Obvious hand-written rules are poor (tens of thousands of false alarms, because "
-    "many legitimate PaySim transfers also empty an account). But a learned decision tree of depth 3 "
-    "matches our XGBoost model and depth 4 beats it. PaySim fraud is close to a threshold pattern, so "
-    "the model is not where ShieldZ's value is. We claim the architecture (privacy barrier, "
-    "leak audit, signed audit trail, on-platform real-time decisions), not detection accuracy.",
+    "**Reading it.** Obvious hand-written rules are poor (tens of thousands of false alarms, "
+    "because many legitimate PaySim transfers also empty an account). But a learned decision tree "
+    "of depth 3 matches our XGBoost model and depth 4 beats it. PaySim fraud is close to a "
+    "threshold pattern, so the model is not where ShieldZ's value is. We claim the architecture "
+    "(privacy barrier, leak audit, signed audit trail, on-platform real-time decisions), not "
+    "detection accuracy.",
 ]
 Path("results/baseline_comparison.md").write_text("\n".join(lines) + "\n")
 print("\n".join(lines))
