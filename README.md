@@ -81,7 +81,7 @@ ssh -N -L 8000:localhost:8000 linux1@<vm-ip>   # then open http://localhost:8000
 bash scripts/z_evidence.sh                 # reproduce the VM evidence in results/
 ```
 
-The full walk-through of the demo page, the proof commands and the tamper demo is in [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md). VM details are in [docs/LINUXONE_RUNBOOK.md](docs/LINUXONE_RUNBOOK.md).
+The full walk-through of the demo page, the proof commands and the tamper demo is in [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
 
 ## Repository map
 
@@ -95,7 +95,7 @@ The full walk-through of the demo page, the proof commands and the tamper demo i
 | `src/shieldz/leak_audit/` | canaries, scanner, sinks, scorecard |
 | `tests/`, `scripts/`, `results/`, `docs/`, `containers/` | tests, tools, committed evidence, design docs, the image |
 
-Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Why each choice: [docs/DECISIONS.md](docs/DECISIONS.md) · Plan: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) · Explained simply: [monkey_brain.md](monkey_brain.md)
+Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Why each choice: [docs/DECISIONS.md](docs/DECISIONS.md)
 
 ## Impact
 

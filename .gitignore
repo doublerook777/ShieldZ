@@ -30,3 +30,7 @@ htmlcov/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Markdown: only README.md is tracked. Working notes live in reference/ (ignored).
+*.md
+!README.md
