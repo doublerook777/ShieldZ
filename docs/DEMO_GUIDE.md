@@ -119,7 +119,7 @@ Don't claim: accuracy on elderly users (PaySim has no demographics), real-money 
 | Page does not load | tunnel closed | rerun the `ssh -N -L` command |
 | `/healthz` says `stub-rule` | api started without the model | `make z-up` (defaults to `ENGINE=xgboost`) |
 | Scenario C is ALLOW | policy rule off, or that payee was paid before | check `review_new_payee_min` in `artifacts/model/thresholds.json`; reload the scenario card (new payee) |
-| Scenario A is REVIEW or ALLOW | same payee already paid | reload the card |
+| Scam transfer is REVIEW or ALLOW | the balance field was edited, or the model was started without its payee-balance input | select the payment again to reset the form (each press uses a fresh payee) |
 | No Granite text after 40 s | explainer backlog or crashed | section 6 |
 | Privacy check card empty | no `results/leak_scorecard_*.json` mounted | `make z-up` mounts `results/` read-only |
 | Verify says invalid right after you tampered | you edited the live file | restore it from the backup; use the copy method above |
