@@ -51,6 +51,32 @@ All numbers come from files in [`results/`](results/) and were produced on the L
 
 **A note on the detector.** PaySim fraud is close to a threshold pattern: a depth-3 decision tree matches our model (`results/baseline_comparison.md`). We do not claim detection accuracy as the contribution. The contribution is the pipeline around the model.
 
+## Screenshots
+
+Taken from the running system on the LinuxONE VM.
+
+**A scam transfer, screened in 3 ms.** The decision comes back first. Every field is tagged with what happens to it, and the explanation is written by Granite.
+
+![A scam transfer is blocked](docs/assets/evidence/03-demo-blocked.png)
+
+**What happened to the data.** On the left, what was typed. On the right, the record the system kept and the exact prompt the language model was shown: fixed text and reason codes, no personal data.
+
+![What you typed versus what the system kept](docs/assets/evidence/03b-what-happened-to-the-data.png)
+
+**A large transfer to a new account is held for review.** The model alone would allow it, so a small policy rule holds it.
+
+![A large transfer is held for review](docs/assets/evidence/08-demo-review.png)
+
+**The two proofs, run against the real system.** The privacy check (0 leaks, canaries found 10 of 10, decoys matched 0 of 1,000) and the tamper check (the whole signed chain re-verified).
+
+![Privacy check and tamper check](docs/assets/evidence/04-proof-cards.png)
+
+**The training and Granite notebooks, open in JupyterLab on the VM.**
+
+![XGBoost training notebook on the VM](docs/assets/evidence/06-jupyter-training.png)
+
+![IBM Granite notebook on the VM, showing s390x](docs/assets/evidence/07-jupyter-granite.png)
+
 ## Tech stack
 
 | Layer | Technology |
