@@ -33,12 +33,9 @@ def add(name: str, flag, pr_auc: float | None = None) -> None:
     tp, fp = int((flag & (yt == 1)).sum()), int((flag & (yt == 0)).sum())
     fn = int((~flag & (yt == 1)).sum())
     auc = f"{pr_auc:.4f}" if pr_auc is not None else "n/a"
-    rows.append(
-        (
-            name,
-            f"| {name} | {tp}/{tp + fn} | {tp / (tp + fn):.4f} | {fp:,} | {tp / max(tp + fp, 1):.3f} | {auc} |",
-        )
-    )
+    cells = [name, f"{tp}/{tp + fn}", f"{tp / (tp + fn):.4f}", f"{fp:,}"]
+    cells += [f"{tp / max(tp + fp, 1):.3f}", auc]
+    rows.append((name, "| " + " | ".join(cells) + " |"))
 
 
 risky = (Xt["type_TRANSFER"] == 1) | (Xt["type_CASH_OUT"] == 1)
