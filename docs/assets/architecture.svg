@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" role="img" aria-labelledby="t d">
+  <title id="t">ShieldZ architecture</title>
+  <desc id="d">A payment request passes through strip(), the only place personal data is read. The decision path scores it and returns a decision. The decision is recorded in an audit chain, a job queue, and a log, with no personal data. A separate explainer container writes the explanation. A canary leak audit searches every place data lands.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#c9c0ad"/>
+    </marker>
+    <style>
+      text { font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; fill: #f7f5f0; }
+      .t { font-size: 17px; font-weight: 500; }
+      .b { font-size: 13.5px; fill: #dad2c1; }
+      .m { font-size: 12.5px; fill: #aea69c; }
+      .box { fill: #383330; stroke: #3f3a36; stroke-width: 1.5; }
+      .key { fill: #f7f5f0; stroke: #f7f5f0; }
+      .key-t { font-size: 17px; font-weight: 500; fill: #2b2622; }
+      .key-b { font-size: 13.5px; fill: #2b2622; }
+      .line { stroke: #c9c0ad; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1200" height="620" fill="#2b2622"/>
+
+  <!-- the line personal data never crosses -->
+  <line x1="565" y1="40" x2="565" y2="520" stroke="#f7f5f0" stroke-width="1.5" stroke-dasharray="6 6"/>
+  <text x="577" y="34" class="m">Personal data stops at this line</text>
+
+  <!-- row 1: the decision path -->
+  <rect class="box" x="30" y="60" width="210" height="120" rx="4"/>
+  <text x="48" y="92" class="t">Payment request</text>
+  <text x="48" y="116" class="b">name, phone, memo,</text>
+  <text x="48" y="136" class="b">accounts, amount</text>
+  <text x="48" y="162" class="m">the only personal data</text>
+
+  <rect class="key" x="290" y="60" width="250" height="120" rx="4"/>
+  <text x="308" y="92" class="key-t">strip()</text>
+  <text x="308" y="116" class="key-b">the one place personal data</text>
+  <text x="308" y="134" class="key-b">is read. Name, phone, memo:</text>
+  <text x="308" y="152" class="key-b">removed. Accounts: keyed hash.</text>
+
+  <rect class="box" x="600" y="60" width="250" height="120" rx="4"/>
+  <text x="618" y="92" class="t">Features and model</text>
+  <text x="618" y="116" class="b">12 numbers and hashed payee</text>
+  <text x="618" y="134" class="b">history. XGBoost plus a policy</text>
+  <text x="618" y="152" class="b">rule for large new-payee transfers.</text>
+
+  <rect class="box" x="890" y="60" width="280" height="120" rx="4"/>
+  <text x="908" y="92" class="t">Decision, in milliseconds</text>
+  <text x="908" y="116" class="b">ALLOW, REVIEW or BLOCK, with</text>
+  <text x="908" y="134" class="b">reason codes. No score, no</text>
+  <text x="908" y="152" class="b">personal data. Returned to the caller.</text>
+
+  <path class="line" d="M240 120 H288"/>
+  <path class="line" d="M540 120 H598"/>
+  <path class="line" d="M850 120 H888"/>
+
+  <!-- searched by the leak audit -->
+  <rect x="585" y="232" width="595" height="297" rx="4" fill="none" stroke="#aea69c" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <text x="600" y="521" class="m">Everything the system writes, searched by the Canary Leak Audit</text>
+
+  <!-- row 2: records, no personal data -->
+  <path class="line" d="M1030 180 V212 H687 V258"/>
+  <path class="line" d="M884 212 V258"/>
+  <path class="line" d="M1030 212 H1081 V258"/>
+
+  <rect class="box" x="600" y="260" width="175" height="90" rx="4"/>
+  <text x="616" y="288" class="t">Audit chain</text>
+  <text x="616" y="310" class="b">signed hash chain of</text>
+  <text x="616" y="328" class="b">every decision</text>
+
+  <rect class="box" x="797" y="260" width="175" height="90" rx="4"/>
+  <text x="813" y="288" class="t">Job queue</text>
+  <text x="813" y="310" class="b">reason codes only,</text>
+  <text x="813" y="328" class="b">never free text</text>
+
+  <rect class="box" x="994" y="260" width="175" height="90" rx="4"/>
+  <text x="1010" y="288" class="t">History and log</text>
+  <text x="1010" y="310" class="b">hashed tokens, and an</text>
+  <text x="1010" y="328" class="b">allowlist of fields</text>
+
+  <!-- row 3: the explainer -->
+  <path class="line" d="M884 350 V408"/>
+  <rect class="box" x="797" y="410" width="372" height="92" rx="4"/>
+  <text x="813" y="438" class="t">Explainer (separate container)</text>
+  <text x="813" y="460" class="b">Granite rewrites the template text in English.</text>
+  <text x="813" y="478" class="b">Guards check prompt and output. The action sentence</text>
+  <text x="813" y="494" class="b">is always the reviewed one. Never delays the decision.</text>
+
+  <rect class="box" x="600" y="410" width="175" height="92" rx="4"/>
+  <text x="616" y="438" class="t">Prompt journal</text>
+  <text x="616" y="460" class="b">every prompt the model</text>
+  <text x="616" y="478" class="b">saw: no personal data</text>
+  <path class="line" d="M797 456 H777"/>
+
+  <!-- left side notes -->
+  <text x="30" y="262" class="b">Personal data exists only in the request object</text>
+  <text x="30" y="282" class="b">and in memory for a few milliseconds.</text>
+  <text x="30" y="318" class="b">After strip(), everything works on numbers,</text>
+  <text x="30" y="338" class="b">hashed tokens and fixed codes.</text>
+
+  <rect class="box" x="30" y="410" width="510" height="92" rx="4"/>
+  <text x="48" y="438" class="t">Runs on IBM LinuxONE (s390x), in containers</text>
+  <text x="48" y="460" class="b">API on core 0: decision p99 6.9 ms, 11.5 ms while the</text>
+  <text x="48" y="478" class="b">explainer is busy (limit 50 ms). Explainer on cores 1-2.</text>
+
+  <!-- bottom banner -->
+  <rect class="box" x="30" y="535" width="1140" height="64" rx="4"/>
+  <text x="48" y="562" class="t">Canary Leak Audit</text>
+  <text x="48" y="582" class="b">1,000 fake customers go through the real system, then every place in the dashed box is searched for their names, numbers and memos. Measured on s390x: 0 leaks in 11 places.</text>
+</svg>
